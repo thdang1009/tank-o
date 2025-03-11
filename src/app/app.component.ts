@@ -4,15 +4,14 @@ import { PhaserGame } from '../game/phaser-game.component';
 import { MainMenu } from '../game/scenes/MainMenu';
 import { CommonModule } from '@angular/common';
 import { EventBus } from '../game/EventBus';
-
+import { AssetsEnum } from './constants/assets-enum';
 @Component({
     selector: 'app-root',
     standalone: true,
     imports: [CommonModule, RouterOutlet, PhaserGame],
     templateUrl: './app.component.html'
 })
-export class AppComponent implements AfterViewInit
-{
+export class AppComponent implements AfterViewInit {
 
     public spritePosition = { x: 0, y: 0 };
     public canMoveSprite = false;
@@ -20,19 +19,16 @@ export class AppComponent implements AfterViewInit
     // This is a reference from the PhaserGame component
     @ViewChild(PhaserGame) phaserRef!: PhaserGame;
 
-    ngAfterViewInit()
-    {
+    ngAfterViewInit() {
         EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
             this.canMoveSprite = scene.scene.key !== 'MainMenu';
         });
     }
 
     // These methods are called from the template
-    public changeScene()
-    {
+    public changeScene() {
 
-        if (this.phaserRef.scene)
-        {
+        if (this.phaserRef.scene) {
 
             const scene = this.phaserRef.scene as MainMenu;
             scene.changeScene();
@@ -41,11 +37,9 @@ export class AppComponent implements AfterViewInit
 
     }
 
-    public moveSprite()
-    {
+    public moveSprite() {
 
-        if (this.phaserRef.scene)
-        {
+        if (this.phaserRef.scene) {
 
             const scene = this.phaserRef.scene as MainMenu;
 
@@ -60,11 +54,9 @@ export class AppComponent implements AfterViewInit
 
     }
 
-    public addSprite()
-    {
+    public addSprite() {
 
-        if (this.phaserRef.scene)
-        {
+        if (this.phaserRef.scene) {
 
             const scene = this.phaserRef.scene;
             // Add more stars
@@ -72,7 +64,7 @@ export class AppComponent implements AfterViewInit
             const y = Phaser.Math.Between(64, scene.scale.height - 64);
 
             //  `add.sprite` is a Phaser GameObjectFactory method and it returns a Sprite Game Object instance
-            const star = scene.add.sprite(x, y, 'tank-dark');
+            const star = scene.add.sprite(x, y, AssetsEnum.TANK_BODY_DARK_LARGE);
 
             //  ... which you can then act upon. Here we create a Phaser Tween to fade the star sprite in and out.
             //  You could, of course, do this from within the Phaser Scene code, but this is just an example
