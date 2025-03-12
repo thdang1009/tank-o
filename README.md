@@ -157,7 +157,7 @@ preload ()
 
     //  This is an example of loading a static image
     //  from the public/assets folder:
-    this.load.image('background', 'assets/bg.png');
+    this.load.image('background', 'background/bg.png');
 }
 ```
 

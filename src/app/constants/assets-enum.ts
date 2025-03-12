@@ -1,4 +1,7 @@
 export enum AssetsEnum {
+    BACKGROUND = 'background',
+    LOGO = 'logo',
+    STAR = 'star',
     BARREL_BLACK_SIDE = 'barrelBlack_side',
     BARREL_BLACK_TOP = 'barrelBlack_top',
     BARREL_GREEN_SIDE = 'barrelGreen_side',
