@@ -10,7 +10,7 @@ const defaultPlayerConfig = {
     bulletDamage: 10_000
 }
 
-export const deltaDefault = 80;
+export const deltaDefault = 100;
 
 export class Player {
     body: Phaser.Physics.Arcade.Sprite;
@@ -44,6 +44,7 @@ export class Player {
 
         // Set up input
         if (scene.input.keyboard) {
+
             this.cursors = scene.input.keyboard.createCursorKeys();
 
             // Add space key for firing
@@ -51,16 +52,29 @@ export class Player {
                 this.fire();
             });
             scene.input.keyboard.on('keydown-W', () => {
-                this.moveForward();
+                this.cursors.up.isDown = true;
+            });
+
+            scene.input.keyboard.on('keyup-W', () => {
+                this.cursors.up.isDown = false;
             });
             scene.input.keyboard.on('keydown-S', () => {
-                this.moveBackward();
+                this.cursors.down.isDown = true;
+            });
+            scene.input.keyboard.on('keyup-S', () => {
+                this.cursors.down.isDown = false;
             });
             scene.input.keyboard.on('keydown-A', () => {
-                this.rotateLeft(deltaDefault);
+                this.cursors.left.isDown = true;
+            });
+            scene.input.keyboard.on('keyup-A', () => {
+                this.cursors.left.isDown = false;
             });
             scene.input.keyboard.on('keydown-D', () => {
-                this.rotateRight(deltaDefault);
+                this.cursors.right.isDown = true;
+            });
+            scene.input.keyboard.on('keyup-D', () => {
+                this.cursors.right.isDown = false;
             });
         } else {
             // Create a dummy cursors object if keyboard is not available
