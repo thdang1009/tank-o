@@ -10,6 +10,8 @@ const defaultPlayerConfig = {
     bulletDamage: 10_000
 }
 
+export const deltaDefault = 80;
+
 export class Player {
     body: Phaser.Physics.Arcade.Sprite;
     barrel: GameObjects.Sprite;
@@ -48,6 +50,18 @@ export class Player {
             scene.input.keyboard.on('keydown-SPACE', () => {
                 this.fire();
             });
+            scene.input.keyboard.on('keydown-W', () => {
+                this.moveForward();
+            });
+            scene.input.keyboard.on('keydown-S', () => {
+                this.moveBackward();
+            });
+            scene.input.keyboard.on('keydown-A', () => {
+                this.rotateLeft(deltaDefault);
+            });
+            scene.input.keyboard.on('keydown-D', () => {
+                this.rotateRight(deltaDefault);
+            });
         } else {
             // Create a dummy cursors object if keyboard is not available
             this.cursors = {
@@ -61,34 +75,48 @@ export class Player {
         }
     }
 
+    // Move forward in the direction the tank is facing
+    moveForward() {
+        this.scene.physics.velocityFromRotation(
+            this.body.rotation,
+            this.speed,
+            (this.body.body as Physics.Arcade.Body).velocity
+        );
+    }
+
+    moveBackward() {
+        this.scene.physics.velocityFromRotation(
+            this.body.rotation,
+            -this.speed * 0.5, // Move slower in reverse
+            (this.body.body as Physics.Arcade.Body).velocity);
+    }
+
+    rotateLeft(delta: number) {
+        this.body.rotation -= this.rotationSpeed * delta;
+    }
+
+    rotateRight(delta: number) {
+        this.body.rotation += this.rotationSpeed * delta;
+    }
+
     update(time: number, delta: number) {
         if (!this.isAlive) return;
 
         // Handle tank movement
         if (this.cursors.up.isDown) {
-            // Move forward in the direction the tank is facing
-            this.scene.physics.velocityFromRotation(
-                this.body.rotation,
-                this.speed,
-                (this.body.body as Physics.Arcade.Body).velocity
-            );
+            this.moveForward();
         } else if (this.cursors.down.isDown) {
             // Move backward in the opposite direction the tank is facing
-            this.scene.physics.velocityFromRotation(
-                this.body.rotation,
-                -this.speed * 0.5, // Move slower in reverse
-                (this.body.body as Physics.Arcade.Body).velocity
-            );
+            this.moveBackward();
         } else {
             // No key is pressed, stop moving
             (this.body.body as Physics.Arcade.Body).setVelocity(0, 0);
         }
-
         // Handle rotation
         if (this.cursors.left.isDown) {
-            this.body.rotation -= this.rotationSpeed * delta;
+            this.rotateLeft(delta);
         } else if (this.cursors.right.isDown) {
-            this.body.rotation += this.rotationSpeed * delta;
+            this.rotateRight(delta);
         }
 
         // Position the barrel to follow the tank body
