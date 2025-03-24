@@ -25,6 +25,7 @@ export class Enemy {
     targetPlayer: Player;
     fireRange: number; // Distance at which the enemy will start firing
     changeDirectionTimer: Phaser.Time.TimerEvent;
+    bulletDamage: number;
     
     constructor(scene: Phaser.Scene, x: number, y: number, type: EnemyType, targetPlayer: Player) {
         this.scene = scene;
@@ -40,6 +41,7 @@ export class Enemy {
                 this.fireRate = 1500;
                 this.points = 300;
                 this.fireRange = 400;
+                this.bulletDamage = 500;
                 // Use red tank for hard enemies
                 this.body = scene.physics.add.sprite(x, y, AssetsEnum.TANK_BODY_RED);
                 this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_RED_BARREL_2);
@@ -52,6 +54,7 @@ export class Enemy {
                 this.fireRate = 2000;
                 this.points = 200;
                 this.fireRange = 350;
+                this.bulletDamage = 200;
                 // Use green tank for medium enemies
                 this.body = scene.physics.add.sprite(x, y, AssetsEnum.TANK_BODY_GREEN);
                 this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_GREEN_BARREL_2);
@@ -65,6 +68,7 @@ export class Enemy {
                 this.fireRate = 2500;
                 this.points = 100;
                 this.fireRange = 300;
+                this.bulletDamage = 100;
                 // Use sand tank for easy enemies
                 this.body = scene.physics.add.sprite(x, y, AssetsEnum.TANK_BODY_DARK);
                 this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_DARK_BARREL_2);
@@ -190,7 +194,7 @@ export class Enemy {
             this.barrel.x,
             this.barrel.y,
             this.barrel.rotation * 180 / Math.PI,
-            10,
+            this.bulletDamage,
             bulletTexture
         );
         
@@ -208,6 +212,7 @@ export class Enemy {
             this.health = 0;
             this.die();
             
+            this.scene.sound.play("explosion");
             // Award points to player
             this.targetPlayer.addScore(this.points);
         }

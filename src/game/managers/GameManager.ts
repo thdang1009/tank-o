@@ -27,7 +27,7 @@ export class GameManager {
 
     // Game configuration
     config: Required<GameConfig> = {
-        initialWave: 1,
+        initialWave: 9,
         maxWaves: 10,
         enemiesPerWave: 5,
         waveDelay: 1000, // ms between waves
@@ -193,7 +193,7 @@ export class GameManager {
                 bullet.sprite,
                 enemy.body,
                 (_bulletSprite: any, _enemyBody: any) => {
-                    this.handleBulletEnemyCollision(bullet, enemy);
+                    this.handleBulletEnemyCollision(bullet, enemy, 'setupPlayerBulletCollisions');
                 }
             );
             bullet.collisionsSetUp = true;
@@ -256,12 +256,14 @@ export class GameManager {
         this.updateUI();
     }
 
-    handleBulletEnemyCollision(bullet: any, enemy: Enemy) {
+    handleBulletEnemyCollision(bullet: any, enemy: Enemy, source: string) {
         // Apply damage to enemy
         enemy.takeDamage(bullet.damage);
 
+
         // Destroy the bullet
         bullet.destroy();
+
 
         // Check if enemy is dead
         if (!enemy.isAlive) {
@@ -382,16 +384,16 @@ export class GameManager {
     setupNewBulletCollisions(enemy: Enemy) {
         // Check for new player bullets that haven't had collisions set up
         for (const bullet of this.player.bullets) {
-            if (!bullet.collisionsSetUp) {
-                this.scene.physics.add.overlap(
-                    bullet.sprite,
-                    enemy.body,
-                    (_bulletSprite: any, _enemyBody: any) => {
-                        this.handleBulletEnemyCollision(bullet, enemy);
-                    }
-                );
-                bullet.collisionsSetUp = true;
-            }
+            // if (!bullet.collisionsSetUp) {
+            this.scene.physics.add.overlap(
+                bullet.sprite,
+                enemy.body,
+                (_bulletSprite: any, _enemyBody: any) => {
+                    this.handleBulletEnemyCollision(bullet, enemy, 'setupNewBulletCollisions');
+                }
+            );
+            bullet.collisionsSetUp = true;
+            // }
         }
 
         // Check for new enemy bullets that haven't had collisions set up

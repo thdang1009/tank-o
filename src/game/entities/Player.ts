@@ -2,18 +2,27 @@ import { Physics, GameObjects } from 'phaser';
 import { AssetsEnum } from '../../app/constants/assets-enum';
 import { Bullet } from './Bullet';
 
+const defaultPlayerConfig = {
+    speed: 150,
+    rotationSpeed: 0.003,
+    health: 10_000,
+    fireRate: 500,
+    bulletDamage: 10_000
+}
+
 export class Player {
     body: Phaser.Physics.Arcade.Sprite;
     barrel: GameObjects.Sprite;
     scene: Phaser.Scene;
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
-    speed: number = 150;
-    rotationSpeed: number = 0.003;
-    health: number = 10_000;
-    fireRate: number = 500; // ms between shots
+    speed: number = defaultPlayerConfig.speed;
+    rotationSpeed: number = defaultPlayerConfig.rotationSpeed;
+    health: number = defaultPlayerConfig.health;
+    fireRate: number = defaultPlayerConfig.fireRate; // ms between shots
     lastFired: number = 0;
     bullets: Bullet[] = [];
     isAlive: boolean = true;
+    bulletDamage: number = defaultPlayerConfig.bulletDamage;
     score: number = 0;
 
     constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -125,14 +134,14 @@ export class Player {
             this.barrel.x,
             this.barrel.y,
             this.barrel.rotation * 180 / Math.PI,
-            10,
+            this.bulletDamage,
             AssetsEnum.BULLET_BLUE_1
         );
 
         this.bullets.push(bullet);
 
         // Play sound effect
-        // this.scene.sound.play('shoot');
+        this.scene.sound.play("shoot");
     }
 
     takeDamage(amount: number) {
@@ -195,7 +204,7 @@ export class Player {
     }
 
     reset() {
-        this.health = 100;
+        this.health = defaultPlayerConfig.health;
         this.isAlive = true;
         this.score = 0;
         this.body.setVisible(true);

@@ -31,9 +31,6 @@ export class Bullet {
             const velocity = scene.physics.velocityFromAngle(angle, this.speed);
             this.sprite.setVelocity(velocity.x, velocity.y);
             this.sprite.setRotation(angle * Math.PI / 180);
-            if (texture === AssetsEnum.BULLET_BLUE_1) {
-                console.log('bullet created', angle);
-            }
         }
 
         // Destroy after lifespan

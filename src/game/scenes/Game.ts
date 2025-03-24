@@ -1,10 +1,19 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
-import { GameManager } from '../managers/GameManager';
+import { GameConfig, GameManager } from '../managers/GameManager';
 import { MapType } from '../map/MapManager';
+import { makeAudioPath } from '../../app/utils/asset-utils';
 
 interface GameSceneData {
     mapType?: MapType;
+}
+
+const gameDefaultConfig: GameConfig = {
+    initialWave: 1,
+    maxWaves: 10,
+    enemiesPerWave: 5,
+    waveDelay: 1000,
+    mapType: MapType.GRASS
 }
 
 export class Game extends Scene
@@ -32,14 +41,11 @@ export class Game extends Scene
             console.error('Physics system not initialized properly');
             return;
         }
-
-        this.gameManager = new GameManager(this, {
-            initialWave: 1,
-            maxWaves: 10,
-            enemiesPerWave: 5,
-            waveDelay: 1000,
+        const config = {
+            ...gameDefaultConfig,
             mapType: this.selectedMapType
-        });
+        }
+        this.gameManager = new GameManager(this, config);
 
         this.gameManager.startGame();
 

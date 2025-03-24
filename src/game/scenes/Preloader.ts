@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { AssetsEnum } from '../../app/constants/assets-enum';
-import { makeAssetPath } from '../../app/utils/asset-utils';
+import { makeAssetPath, makeAudioPath } from '../../app/utils/asset-utils';
 export class Preloader extends Scene {
     constructor() {
         super('Preloader');
@@ -8,7 +8,7 @@ export class Preloader extends Scene {
 
     init() {
         //  We loaded this image in our Boot Scene, so we can display it here
-        this.add.image(512, 384, AssetsEnum.BACKGROUND);
+        this.add.image(512, 384, makeAssetPath(AssetsEnum.BACKGROUND));
 
         //  A simple progress bar. This is the outline of the bar.
         this.add.rectangle(512, 384, 468, 32).setStrokeStyle(1, 0xffffff);
@@ -33,6 +33,9 @@ export class Preloader extends Scene {
         assetKeys.forEach((key) => {
             this.load.image(AssetsEnum[key], makeAssetPath(AssetsEnum[key]));
         });
+        this.load.audio("theme", makeAudioPath("theme-mini-tank"));
+        this.load.audio("explosion", makeAudioPath("explosion", "wav"));
+        this.load.audio("shoot", makeAudioPath("shoot", "mp3"));
     }
 
     create() {
@@ -41,5 +44,6 @@ export class Preloader extends Scene {
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
         this.scene.start('MainMenu');
+        this.sound.play("theme");
     }
 }
