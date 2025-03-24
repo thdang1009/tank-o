@@ -5,6 +5,8 @@ import { MainMenu } from '../game/scenes/MainMenu';
 import { CommonModule } from '@angular/common';
 import { EventBus } from '../game/EventBus';
 import { AssetsEnum } from './constants/assets-enum';
+import { Game } from '../game/scenes/Game';
+
 @Component({
     selector: 'app-root',
     standalone: true,
@@ -27,38 +29,34 @@ export class AppComponent implements AfterViewInit {
 
     // These methods are called from the template
     public changeScene() {
-
         if (this.phaserRef.scene) {
-
-            const scene = this.phaserRef.scene as MainMenu;
-            scene.changeScene();
-
+            const scene = this.phaserRef.scene;
+            
+            if (scene instanceof MainMenu) {
+                scene.changeScene();
+            } else if (scene instanceof Game) {
+                scene.changeScene();
+            }
         }
-
     }
 
     public moveSprite() {
-
         if (this.phaserRef.scene) {
-
-            const scene = this.phaserRef.scene as MainMenu;
-
-            // Get the update logo position
-            scene.moveLogo(({ x, y }) => {
-
-                this.spritePosition = { x, y };
-
-            });
-
+            // Get a reference to the player position if in Game scene
+            if (this.phaserRef.scene instanceof Game) {
+                const gameScene = this.phaserRef.scene as Game;
+                if (gameScene.gameManager && gameScene.gameManager.player) {
+                    const player = gameScene.gameManager.player;
+                    this.spritePosition = { x: Math.floor(player.body.x), y: Math.floor(player.body.y) };
+                }
+            }
         }
-
     }
 
     public addSprite() {
-
         if (this.phaserRef.scene) {
-
             const scene = this.phaserRef.scene;
+            
             // Add more stars
             const x = Phaser.Math.Between(64, scene.scale.width - 64);
             const y = Phaser.Math.Between(64, scene.scale.height - 64);
@@ -76,9 +74,6 @@ export class AppComponent implements AfterViewInit {
                 yoyo: true,
                 repeat: -1
             });
-
         }
-
     }
-
 }

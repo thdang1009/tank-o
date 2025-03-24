@@ -1,32 +1,55 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
-import { AssetsEnum } from '../../app/constants/assets-enum';
+import { GameManager } from '../managers/GameManager';
+import { MapType } from '../map/MapManager';
+
+interface GameSceneData {
+    mapType?: MapType;
+}
+
 export class Game extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
-    background: Phaser.GameObjects.Image;
-    gameText: Phaser.GameObjects.Text;
+    gameManager: GameManager;
+    selectedMapType: MapType = MapType.GRASS;
 
     constructor ()
     {
         super('Game');
     }
 
+    init(data: GameSceneData) {
+        this.selectedMapType = data.mapType || MapType.GRASS;
+    }
+
     create ()
     {
         this.camera = this.cameras.main;
-        this.camera.setBackgroundColor(0x00ff00);
+        this.camera.setBackgroundColor(0x000000);
 
-        this.background = this.add.image(512, 384, AssetsEnum.BACKGROUND);
-        this.background.setAlpha(0.5);
+        // Ensure physics is initialized before creating GameManager
+        if (!this.physics || !this.physics.add) {
+            console.error('Physics system not initialized properly');
+            return;
+        }
 
-        this.gameText = this.add.text(512, 384, 'Make something fun!\nand share it with us:\nsupport@phaser.io', {
-            fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8,
-            align: 'center'
-        }).setOrigin(0.5).setDepth(100);
+        this.gameManager = new GameManager(this, {
+            initialWave: 1,
+            maxWaves: 10,
+            enemiesPerWave: 5,
+            waveDelay: 5000,
+            mapType: this.selectedMapType
+        });
+
+        this.gameManager.startGame();
 
         EventBus.emit('current-scene-ready', this);
+    }
+
+    override update(time: number, delta: number) {
+        if (this.gameManager) {
+            this.gameManager.update(time, delta);
+        }
     }
 
     changeScene ()
