@@ -37,7 +37,7 @@ export class Game extends Scene
             initialWave: 1,
             maxWaves: 10,
             enemiesPerWave: 5,
-            waveDelay: 5000,
+            waveDelay: 1000,
             mapType: this.selectedMapType
         });
 

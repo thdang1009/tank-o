@@ -42,9 +42,7 @@ export class Enemy {
                 this.fireRange = 400;
                 // Use red tank for hard enemies
                 this.body = scene.physics.add.sprite(x, y, AssetsEnum.TANK_BODY_RED);
-                this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_RED_BARREL_3);
-                // Correct initial rotation
-                this.body.setAngle(-90);
+                this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_RED_BARREL_2);
                 break;
                 
             case EnemyType.MEDIUM:
@@ -57,8 +55,6 @@ export class Enemy {
                 // Use green tank for medium enemies
                 this.body = scene.physics.add.sprite(x, y, AssetsEnum.TANK_BODY_GREEN);
                 this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_GREEN_BARREL_2);
-                // Correct initial rotation
-                this.body.setAngle(-90);
                 break;
                 
             case EnemyType.EASY:
@@ -70,10 +66,8 @@ export class Enemy {
                 this.points = 100;
                 this.fireRange = 300;
                 // Use sand tank for easy enemies
-                this.body = scene.physics.add.sprite(x, y, AssetsEnum.TANK_BODY_SAND);
-                this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_SAND_BARREL_1);
-                // Correct initial rotation
-                this.body.setAngle(-90);
+                this.body = scene.physics.add.sprite(x, y, AssetsEnum.TANK_BODY_DARK);
+                this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_DARK_BARREL_2);
                 break;
         }
         
@@ -83,7 +77,7 @@ export class Enemy {
         this.body.setData('ref', this); // Store reference to this object for collision handling
         
         // Configure barrel
-        this.barrel.setOrigin(0.5, 0.8); // Set origin point to bottom center of barrel
+        this.barrel.setOrigin(0, 0.5); // Set origin point to bottom center of barrel
         this.barrel.setDepth(2);
         
         // Set up random direction changes
@@ -133,8 +127,6 @@ export class Enemy {
             const rotationDiff = Phaser.Math.Angle.Wrap(angleToPlayer - currentRotation);
             this.barrel.rotation = currentRotation + rotationDiff * 0.05 * delta;
             
-            // Adjust barrel angle to account for sprite orientation (-90 degrees)
-            this.barrel.setAngle(Phaser.Math.RadToDeg(this.barrel.rotation) - 90);
             
             // If player is in range, fire
             if (distanceToPlayer < this.fireRange && time > this.lastFired + this.fireRate) {
@@ -197,7 +189,7 @@ export class Enemy {
             this.scene,
             this.barrel.x,
             this.barrel.y,
-            this.barrel.rotation,
+            this.barrel.rotation * 180 / Math.PI,
             10,
             bulletTexture
         );

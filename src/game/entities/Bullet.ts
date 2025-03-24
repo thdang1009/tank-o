@@ -8,47 +8,48 @@ export class Bullet {
     speed: number = 400;
     lifespan: number = 2000; // 2 seconds
     collisionsSetUp: boolean = false; // Added property to track collision setup
-    
+
     constructor(scene: Phaser.Scene, x: number, y: number, angle: number, damage: number = 10, texture: string = AssetsEnum.BULLET_BLUE_1) {
         this.scene = scene;
         this.damage = damage;
-        
+
         // Create bullet sprite
-        this.sprite = scene.physics.add.sprite(x, y, AssetsEnum.BULLET_BLUE_1);
-        this.sprite.setScale(0.5);
-        
+        this.sprite = scene.physics.add.sprite(x, y, texture);
+
         // Set up physics
         if (this.sprite.body) {
             // Set collide world bounds
             this.sprite.setCollideWorldBounds(true);
-            
+
             // Listen for world bounds collision
             scene.physics.world.on('worldbounds', (body: any) => {
                 if (body.gameObject === this.sprite) {
                     this.destroy();
                 }
             });
-            
             // Set velocity based on angle
             const velocity = scene.physics.velocityFromAngle(angle, this.speed);
             this.sprite.setVelocity(velocity.x, velocity.y);
             this.sprite.setRotation(angle * Math.PI / 180);
+            if (texture === AssetsEnum.BULLET_BLUE_1) {
+                console.log('bullet created', angle);
+            }
         }
-        
+
         // Destroy after lifespan
         scene.time.delayedCall(this.lifespan, () => {
             this.destroy();
         });
     }
-    
+
     update() {
         // Additional bullet logic could go here
     }
-    
+
     isOutOfBounds(): boolean {
         // Check if bullet is outside the world bounds
         if (!this.sprite || !this.sprite.active) return true;
-        
+
         const worldBounds = this.scene.physics.world.bounds;
         return (
             this.sprite.x < worldBounds.x ||
@@ -57,7 +58,7 @@ export class Bullet {
             this.sprite.y > worldBounds.y + worldBounds.height
         );
     }
-    
+
     destroy() {
         if (this.sprite && this.sprite.active) {
             this.sprite.destroy();
