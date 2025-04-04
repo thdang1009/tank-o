@@ -2,10 +2,12 @@ import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
 import { GameConfig, GameManager } from '../managers/GameManager';
 import { MapType } from '../map/MapManager';
+import { TankClassType } from '../entities/TankClass';
 import { makeAudioPath } from '../../app/utils/asset-utils';
 
 interface GameSceneData {
     mapType?: MapType;
+    tankClass?: TankClassType;
 }
 
 const gameDefaultConfig: GameConfig = {
@@ -21,6 +23,7 @@ export class Game extends Scene
     camera: Phaser.Cameras.Scene2D.Camera;
     gameManager: GameManager;
     selectedMapType: MapType = MapType.GRASS;
+    selectedTankClass: TankClassType = TankClassType.VERSATILE;
 
     constructor ()
     {
@@ -29,6 +32,7 @@ export class Game extends Scene
 
     init(data: GameSceneData) {
         this.selectedMapType = data.mapType || MapType.GRASS;
+        this.selectedTankClass = data.tankClass || TankClassType.VERSATILE;
     }
 
     create ()
@@ -43,7 +47,8 @@ export class Game extends Scene
         }
         const config = {
             ...gameDefaultConfig,
-            mapType: this.selectedMapType
+            mapType: this.selectedMapType,
+            tankClass: this.selectedTankClass
         }
         this.gameManager = new GameManager(this, config);
 

@@ -19,13 +19,12 @@ export class Bullet {
         // Set up physics
         if (this.sprite.body) {
             // Set collide world bounds
-            this.sprite.setCollideWorldBounds(true);
+            this.sprite.setCollideWorldBounds(false);
 
             // Listen for world bounds collision
             scene.physics.world.on('worldbounds', (body: any) => {
-                if (body.gameObject === this.sprite) {
-                    this.destroy();
-                }
+                console.log('dangth worldbounds', body);
+                this.destroy();
             });
             // Set velocity based on angle
             const velocity = scene.physics.velocityFromAngle(angle, this.speed);

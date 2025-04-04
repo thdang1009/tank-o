@@ -189,4 +189,21 @@ export enum AssetsEnum {
     TREE_GREEN_TWIGS = 'treeGreen_twigs',
     WIRE_CROOKED = 'wireCrooked',
     WIRE_STRAIGHT = 'wireStraight',
+    SHIELD_EFFECT = 'shield-effect',
+}
+
+export enum AssetsAudioEnum {
+    // sounds
+    EXPLOSION = 'explosion.wav',
+    THEME = 'theme.ogg',
+    SPEED_UP = 'speed-up.wav',
+    SHOOT = 'shoot.mp3',
+    HEAL = 'heal.wav',
+    ATK_BUFF = 'atk-buff.wav',
+    DEF_BUFF = 'def-buff.wav',
+    DEBUFF = 'debuff.wav',
+    REVIVE = 'revive.wav',
+    ABSORB = 'absorb.wav',
+    SLEEP = 'sleep.wav',
+    DISAPPEAR = 'disappear.wav',
 }

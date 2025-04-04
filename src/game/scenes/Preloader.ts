@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-import { AssetsEnum } from '../../app/constants/assets-enum';
+import { AssetsAudioEnum, AssetsEnum } from '../../app/constants/assets-enum';
 import { makeAssetPath, makeAudioPath } from '../../app/utils/asset-utils';
 export class Preloader extends Scene {
     constructor() {
@@ -33,9 +33,12 @@ export class Preloader extends Scene {
         assetKeys.forEach((key) => {
             this.load.image(AssetsEnum[key], makeAssetPath(AssetsEnum[key]));
         });
-        this.load.audio("theme", makeAudioPath("theme-mini-tank"));
-        this.load.audio("explosion", makeAudioPath("explosion", "wav"));
-        this.load.audio("shoot", makeAudioPath("shoot", "mp3"));
+
+
+        const audioKeys = Object.keys(AssetsAudioEnum) as Array<keyof typeof AssetsAudioEnum>;
+        audioKeys.forEach((key) => {
+            this.load.audio(AssetsAudioEnum[key], makeAudioPath(AssetsAudioEnum[key]));
+        });
     }
 
     create() {
@@ -44,6 +47,6 @@ export class Preloader extends Scene {
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
         this.scene.start('MainMenu');
-        this.sound.play("theme");
+        this.sound.play(AssetsAudioEnum.THEME);
     }
 }

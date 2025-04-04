@@ -1,7 +1,8 @@
 import { Physics, GameObjects } from 'phaser';
-import { AssetsEnum } from '../../app/constants/assets-enum';
+import { AssetsAudioEnum, AssetsEnum } from '../../app/constants/assets-enum';
 import { Bullet } from './Bullet';
 import { Player } from './Player';
+import { TankStats, defaultEnemyStats, calculateDamage } from './TankStats';
 
 export enum EnemyType {
     EASY = 'easy',
@@ -13,10 +14,11 @@ export class Enemy {
     body: Phaser.Physics.Arcade.Sprite;
     barrel: GameObjects.Sprite;
     scene: Phaser.Scene;
-    speed: number;
-    rotationSpeed: number;
-    health: number;
-    fireRate: number; // ms between shots
+    
+    // Tank stats
+    stats: TankStats;
+    
+    // Additional properties
     lastFired: number = 0;
     bullets: Bullet[] = [];
     isAlive: boolean = true;
@@ -25,7 +27,9 @@ export class Enemy {
     targetPlayer: Player;
     fireRange: number; // Distance at which the enemy will start firing
     changeDirectionTimer: Phaser.Time.TimerEvent;
-    bulletDamage: number;
+    
+    // Stats display
+    statsText: Phaser.GameObjects.Text;
     
     constructor(scene: Phaser.Scene, x: number, y: number, type: EnemyType, targetPlayer: Player) {
         this.scene = scene;
@@ -35,43 +39,37 @@ export class Enemy {
         // Set properties based on difficulty type
         switch(type) {
             case EnemyType.HARD:
-                this.speed = 120;
-                this.rotationSpeed = 0.025;
-                this.health = 150;
-                this.fireRate = 1500;
+                this.stats = { ...defaultEnemyStats.hard };
                 this.points = 300;
                 this.fireRange = 400;
-                this.bulletDamage = 500;
                 // Use red tank for hard enemies
                 this.body = scene.physics.add.sprite(x, y, AssetsEnum.TANK_BODY_RED);
                 this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_RED_BARREL_2);
+                // Correct initial rotation
+                // this.body.setAngle(-90);
                 break;
                 
             case EnemyType.MEDIUM:
-                this.speed = 100;
-                this.rotationSpeed = 0.02;
-                this.health = 100;
-                this.fireRate = 2000;
+                this.stats = { ...defaultEnemyStats.medium };
                 this.points = 200;
                 this.fireRange = 350;
-                this.bulletDamage = 200;
                 // Use green tank for medium enemies
                 this.body = scene.physics.add.sprite(x, y, AssetsEnum.TANK_BODY_GREEN);
                 this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_GREEN_BARREL_2);
+                // Correct initial rotation
+                // this.body.setAngle(-90);
                 break;
                 
             case EnemyType.EASY:
             default:
-                this.speed = 80;
-                this.rotationSpeed = 0.015;
-                this.health = 50;
-                this.fireRate = 2500;
+                this.stats = { ...defaultEnemyStats.easy };
                 this.points = 100;
                 this.fireRange = 300;
-                this.bulletDamage = 100;
                 // Use sand tank for easy enemies
                 this.body = scene.physics.add.sprite(x, y, AssetsEnum.TANK_BODY_DARK);
                 this.barrel = scene.add.sprite(x, y, AssetsEnum.TANK_DARK_BARREL_2);
+                // Correct initial rotation
+                // this.body.setAngle(-90);
                 break;
         }
         
@@ -86,6 +84,33 @@ export class Enemy {
         
         // Set up random direction changes
         this.setupRandomMovement();
+        
+        // Create HP display above enemy
+        this.createHPDisplay();
+    }
+    
+    createHPDisplay() {
+        // Create HP text above enemy
+        this.statsText = this.scene.add.text(
+            this.body.x, 
+            this.body.y - 40, 
+            `HP: ${this.stats.hp}`, 
+            { 
+                fontSize: '12px', 
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 2
+            }
+        );
+        this.statsText.setOrigin(0.5);
+        this.statsText.setDepth(3);
+    }
+    
+    updateHPDisplay() {
+        if (this.statsText) {
+            this.statsText.setText(`HP: ${this.stats.hp}`);
+            this.statsText.setPosition(this.body.x, this.body.y - 40);
+        }
     }
     
     setupRandomMovement() {
@@ -113,7 +138,7 @@ export class Enemy {
         if (!this.isAlive) return;
         
         // Only proceed if player is still alive
-        if (this.targetPlayer.isAlive) {
+        if (this.targetPlayer.isAlive && !this.targetPlayer.isInvisible) {
             // Calculate angle to player for the barrel
             const angleToPlayer = Phaser.Math.Angle.Between(
                 this.body.x, this.body.y,
@@ -131,9 +156,11 @@ export class Enemy {
             const rotationDiff = Phaser.Math.Angle.Wrap(angleToPlayer - currentRotation);
             this.barrel.rotation = currentRotation + rotationDiff * 0.05 * delta;
             
+            // Adjust barrel angle to account for sprite orientation (-90 degrees)
+            // this.barrel.setAngle(Phaser.Math.RadToDeg(this.barrel.rotation) - 90);
             
             // If player is in range, fire
-            if (distanceToPlayer < this.fireRange && time > this.lastFired + this.fireRate) {
+            if (distanceToPlayer < this.fireRange && time > this.lastFired + this.stats.fireRate) {
                 this.fire();
                 this.lastFired = time;
             }
@@ -141,14 +168,14 @@ export class Enemy {
             // Move in current direction
             this.scene.physics.velocityFromRotation(
                 this.body.rotation,
-                this.speed,
+                this.stats.speed,
                 (this.body.body as Physics.Arcade.Body).velocity
             );
         } else {
             // Player is dead, just wander randomly
             this.scene.physics.velocityFromRotation(
                 this.body.rotation,
-                this.speed * 0.5,
+                this.stats.speed * 0.5,
                 (this.body.body as Physics.Arcade.Body).velocity
             );
         }
@@ -168,6 +195,9 @@ export class Enemy {
                 this.bullets.splice(i, 1);
             }
         }
+        
+        // Update HP display
+        this.updateHPDisplay();
     }
     
     fire() {
@@ -194,7 +224,7 @@ export class Enemy {
             this.barrel.x,
             this.barrel.y,
             this.barrel.rotation * 180 / Math.PI,
-            this.bulletDamage,
+            this.stats.atk,  // Use attack stat for bullet damage
             bulletTexture
         );
         
@@ -205,14 +235,24 @@ export class Enemy {
     }
     
     takeDamage(amount: number) {
-        this.health -= amount;
+        // Calculate actual damage taken based on defense
+        const actualDamage = calculateDamage(amount, this.stats.def);
+        
+        // Reduce HP
+        this.stats.hp -= actualDamage;
+        
+        // Visual feedback - flash the tank red
+        this.body.setTint(0xff0000);
+        this.scene.time.delayedCall(100, () => {
+            this.body.clearTint();
+        });
         
         // Check if enemy is dead
-        if (this.health <= 0) {
-            this.health = 0;
+        if (this.stats.hp <= 0) {
+            this.stats.hp = 0;
             this.die();
             
-            this.scene.sound.play("explosion");
+            this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.5 });
             // Award points to player
             this.targetPlayer.addScore(this.points);
         }
@@ -224,6 +264,11 @@ export class Enemy {
         // Clean up timer
         if (this.changeDirectionTimer) {
             this.changeDirectionTimer.destroy();
+        }
+        
+        // Hide HP display
+        if (this.statsText) {
+            this.statsText.destroy();
         }
         
         // Play explosion animation
@@ -267,6 +312,11 @@ export class Enemy {
         // Clean up timer
         if (this.changeDirectionTimer) {
             this.changeDirectionTimer.destroy();
+        }
+        
+        // Clean up stats text
+        if (this.statsText) {
+            this.statsText.destroy();
         }
         
         // Clean up bullets

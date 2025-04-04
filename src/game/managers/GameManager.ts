@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { Player } from '../entities/Player';
 import { Enemy, EnemyType } from '../entities/Enemy';
 import { MapManager, MapType } from '../map/MapManager';
+import { TankClassType } from '../entities/TankClass';
 
 export interface GameConfig {
     initialWave?: number;
@@ -9,6 +10,7 @@ export interface GameConfig {
     enemiesPerWave?: number;
     waveDelay?: number;
     mapType?: MapType;
+    tankClass?: TankClassType;
 }
 
 export enum GameState {
@@ -27,11 +29,12 @@ export class GameManager {
 
     // Game configuration
     config: Required<GameConfig> = {
-        initialWave: 9,
+        initialWave: 1,
         maxWaves: 10,
         enemiesPerWave: 5,
         waveDelay: 1000, // ms between waves
-        mapType: MapType.GRASS
+        mapType: MapType.GRASS,
+        tankClass: TankClassType.VERSATILE
     };
 
     // Game state
@@ -60,14 +63,26 @@ export class GameManager {
         // Create map
         this.mapManager = new MapManager(scene, this.config.mapType);
 
-        // Create player
-        this.player = new Player(scene, scene.sys.canvas.width / 2, scene.sys.canvas.height / 2);
+        // Create player with the selected tank class
+        this.player = new Player(
+            scene, 
+            scene.sys.canvas.width / 2, 
+            scene.sys.canvas.height / 2,
+            this.config.tankClass
+        );
 
         // Set up collision detection between player and obstacles
         scene.physics.add.collider(this.player.body, this.mapManager.getObstaclesGroup());
 
         // Create UI
         this.createUI();
+
+        // Setup spell key
+        if (scene.input.keyboard) {
+            scene.input.keyboard.on('keydown-Q', () => {
+                this.castPlayerSpell();
+            });
+        }
     }
 
     createUI() {
@@ -87,14 +102,6 @@ export class GameManager {
             strokeThickness: 4
         }).setScrollFactor(0).setDepth(100);
 
-        // Health indicator
-        this.healthText = this.scene.add.text(20, 100, `Health: ${this.player.health}`, {
-            fontSize: '24px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 4
-        }).setScrollFactor(0).setDepth(100);
-
         // State message (wave starting, complete, etc.)
         this.stateText = this.scene.add.text(
             this.scene.sys.canvas.width / 2,
@@ -108,6 +115,19 @@ export class GameManager {
                 align: 'center'
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+
+        // Add spell key hint
+        // const spellHint = this.scene.add.text(
+        //     this.scene.sys.canvas.width - 150,
+        //     this.scene.sys.canvas.height - 50,
+        //     'Press Q to cast Spell',
+        //     {
+        //         fontSize: '16px',
+        //         color: '#ffffff',
+        //         stroke: '#000000',
+        //         strokeThickness: 3
+        //     }
+        // ).setScrollFactor(0).setDepth(100);
     }
 
     startGame() {
@@ -357,25 +377,30 @@ export class GameManager {
     updateUI() {
         this.waveText.setText(`Wave: ${this.currentWave}/${this.config.maxWaves}`);
         this.scoreText.setText(`Score: ${this.player.score}`);
-        this.healthText.setText(`Health: ${this.player.health}`);
     }
 
     update(time: number, delta: number) {
         if (this.gameState === GameState.WAVE_IN_PROGRESS) {
             // Update player
             this.player.update(time, delta);
-
+            
             // Update all enemies
             for (const enemy of this.enemies) {
                 enemy.update(time, delta);
+                
+                // If player is invisible (Versatile class ability), make enemies unable to target player
+                if (this.player.isInvisible) {
+                    // Skip enemy targeting logic
+                    continue;
+                }
             }
-
+            
             // Check for any new player bullets and set up collisions
             for (const enemy of this.enemies) {
                 this.setupNewBulletCollisions(enemy);
             }
         }
-
+        
         // Update UI
         this.updateUI();
     }
@@ -408,6 +433,20 @@ export class GameManager {
                 );
                 bullet.collisionsSetUp = true;
             }
+        }
+    }
+
+    // Add method to handle player spell casting
+    castPlayerSpell() {
+        if (this.gameState !== GameState.WAVE_IN_PROGRESS || !this.player.isAlive) return;
+        
+        // Use the player's special ability
+        this.player.useSpecialAbility();
+        
+        // If it's the Supporter class, apply healing to any allies (for future multiplayer support)
+        if (this.player.tankClass === TankClassType.SUPPORTER && this.player.isSkillActive) {
+            // Currently no allies to heal in single player mode
+            // This would be implemented in multiplayer
         }
     }
 } 

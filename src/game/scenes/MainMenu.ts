@@ -181,11 +181,10 @@ export class MainMenu extends Scene
         });
     }
     
-    changeScene ()
-    {
-        // Pass the selected map type to the game scene
-        console.log('selectedMap', this.selectedMap);
-        this.scene.start('Game', { mapType: this.selectedMap });
+    changeScene() {
+        // Pass the selected map type to the class selection scene
+        console.log('Selected map:', this.selectedMap);
+        this.scene.start('ClassSelection', { mapType: this.selectedMap });
         this.sound.stopByKey("theme");
     }
 }
