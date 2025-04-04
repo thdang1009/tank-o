@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { AssetsEnum } from '../../app/constants/assets-enum';
-import { TankClasses, TankClassType } from '../entities/TankClass';
+import { TankClassDefinition, TankClasses, TankClassType } from '../entities/TankClass';
 import { GameMode } from '../constants/GameModes';
 // import { MapType } from '../constants/MapEnum';
 import { SocketService, SocketEvents, Lobby, LobbyPlayer } from '../services/SocketService';
@@ -461,7 +461,7 @@ export class LobbyScene extends Scene {
     /**
      * Show tank description
      */
-    private showTankDescription(tankInfo: { name: string; description: string; specialty: string }) {
+    private showTankDescription(tankInfo: TankClassDefinition) {
         // Remove existing description if any
         this.hideTankDescription();
 
@@ -481,7 +481,7 @@ export class LobbyScene extends Scene {
         }).setOrigin(0.5, 0.5);
 
         // Specialty text
-        const specText = this.add.text(0, 15, `Specialty: ${tankInfo.specialty}`, {
+        const specText = this.add.text(0, 15, `Specialty: ${tankInfo.skillDescription}`, {
             fontSize: '14px',
             color: '#ffff00',
             align: 'center'

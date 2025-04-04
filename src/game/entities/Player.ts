@@ -41,7 +41,8 @@ export class Player {
     constructor(scene: Phaser.Scene, x: number, y: number, tankClass: TankClassType = TankClassType.VERSATILE, playerLobbyId?: string) {
         this.scene = scene;
         this.tankClass = tankClass;
-        this.playerLobbyId = playerLobbyId;
+        // TODO: make sure if create current player, playerLobbyId is auto generated
+        this.playerLobbyId = playerLobbyId || '';
 
         // Get class definition
         const classDefinition = getTankClassDefinition(tankClass);
