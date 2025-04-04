@@ -2,16 +2,23 @@ import { Scene } from 'phaser';
 import { TankClassType, TankClasses } from '../entities/TankClass';
 import { MapType } from '../map/MapManager';
 import { AssetsEnum } from '../../app/constants/assets-enum';
+import { GameMode } from '../constants/GameModes';
 
 interface ClassSelectionSceneData {
     mapType: MapType;
+    gameMode?: GameMode;
+    stageLevel?: number;
+    difficulty?: string;
 }
 
 export class ClassSelection extends Scene {
     selectedMapType: MapType = MapType.GRASS;
+    selectedGameMode: GameMode = GameMode.SOLO;
     selectedClass: TankClassType | null = null;
     classButtons: {[key in TankClassType]?: Phaser.GameObjects.Container} = {};
     continueButton: Phaser.GameObjects.Container;
+    stageLevel: number = 1;
+    difficulty: string = 'Normal';
 
     constructor() {
         super('ClassSelection');
@@ -19,6 +26,15 @@ export class ClassSelection extends Scene {
 
     init(data: ClassSelectionSceneData) {
         this.selectedMapType = data.mapType || MapType.GRASS;
+        this.selectedGameMode = data.gameMode || GameMode.SOLO;
+        
+        if (data.stageLevel) {
+            this.stageLevel = data.stageLevel;
+        }
+        
+        if (data.difficulty) {
+            this.difficulty = data.difficulty;
+        }
     }
 
     create() {
@@ -36,11 +52,44 @@ export class ClassSelection extends Scene {
             }
         ).setOrigin(0.5, 0.5);
 
+        // Game mode info display
+        this.displayGameModeInfo();
+
         // Create class selection buttons
         this.createClassButtons();
 
         // Create continue button (initially disabled)
         this.createContinueButton();
+    }
+
+    displayGameModeInfo() {
+        // Show additional information based on game mode
+        let infoText = '';
+        
+        switch (this.selectedGameMode) {
+            case GameMode.SOLO:
+                infoText = 'Solo Mode - Survive against AI enemies';
+                break;
+            case GameMode.CHAOS:
+                infoText = 'Chaos Mode - Last tank standing wins!';
+                break;
+            case GameMode.STAGE:
+                infoText = `Stage Mode - Level ${this.stageLevel} (${this.difficulty}) - Team up and defeat the boss`;
+                break;
+        }
+        
+        // Add game mode text
+        const modeInfoText = this.add.text(
+            this.cameras.main.width / 2,
+            90,
+            infoText,
+            {
+                fontSize: '18px',
+                color: '#ffcc00',
+                stroke: '#000000',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5, 0.5);
     }
 
     createClassButtons() {
@@ -205,10 +254,13 @@ export class ClassSelection extends Scene {
     startGame() {
         if (!this.selectedClass) return;
         
-        // Start game scene with selected map and class
+        // Start game scene with selected map, class, and game mode
         this.scene.start('Game', {
             mapType: this.selectedMapType,
-            tankClass: this.selectedClass
+            tankClass: this.selectedClass,
+            gameMode: this.selectedGameMode,
+            stageLevel: this.stageLevel,
+            difficulty: this.difficulty
         });
     }
 } 

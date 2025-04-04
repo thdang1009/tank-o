@@ -5,6 +5,9 @@ import { MainMenu } from './scenes/MainMenu';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { ClassSelection } from './scenes/ClassSelection';
+import { ModeSelection } from './scenes/ModeSelection';
+import { MultiplayerLobby } from './scenes/MultiplayerLobby';
+import { StageLobby } from './scenes/StageLobby';
 
 //  Find out more information about the Game Config at:
 //  https://newdocs.phaser.io/docs/3.70.0/Phaser.Types.Core.GameConfig
@@ -25,7 +28,10 @@ const config: Phaser.Types.Core.GameConfig = {
         Boot,
         Preloader,
         MainMenu,
+        ModeSelection,
         ClassSelection,
+        MultiplayerLobby,
+        StageLobby,
         MainGame,
         GameOver
     ]

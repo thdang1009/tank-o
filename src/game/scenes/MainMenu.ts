@@ -182,9 +182,9 @@ export class MainMenu extends Scene
     }
     
     changeScene() {
-        // Pass the selected map type to the class selection scene
+        // Pass the selected map type to the mode selection scene
         console.log('Selected map:', this.selectedMap);
-        this.scene.start('ClassSelection', { mapType: this.selectedMap });
+        this.scene.start('ModeSelection', { mapType: this.selectedMap });
         this.sound.stopByKey("theme");
     }
 }

@@ -3,14 +3,23 @@ import { Player } from '../entities/Player';
 import { Enemy, EnemyType } from '../entities/Enemy';
 import { MapManager, MapType } from '../map/MapManager';
 import { TankClassType } from '../entities/TankClass';
+import { GameMode } from '../constants/GameModes';
 
 export interface GameConfig {
     initialWave?: number;
     maxWaves?: number;
     enemiesPerWave?: number;
     waveDelay?: number;
-    mapType?: MapType;
+    mapType: MapType;
     tankClass?: TankClassType;
+    gameMode?: GameMode;
+    
+    // New properties for different game modes
+    isMultiplayer?: boolean;
+    friendlyFire?: boolean;
+    hasBoss?: boolean;
+    stageLevel?: number;
+    difficulty?: string;
 }
 
 export enum GameState {
@@ -34,7 +43,13 @@ export class GameManager {
         enemiesPerWave: 5,
         waveDelay: 1000, // ms between waves
         mapType: MapType.GRASS,
-        tankClass: TankClassType.VERSATILE
+        tankClass: TankClassType.VERSATILE,
+        gameMode: GameMode.SOLO,
+        isMultiplayer: false,
+        friendlyFire: false,
+        hasBoss: false,
+        stageLevel: 1,
+        difficulty: 'easy'
     };
 
     // Game state
