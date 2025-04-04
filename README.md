@@ -45,7 +45,7 @@ We have provided a default project structure to get you started. This is as foll
 - `src/app/app.component.ts` - The main Angular component.
 - `src/app/app.component.html` - The main HTML Angular component.
 - `src/game/phaser-game.component.ts` - The Angular component that initializes the Phaser Game and serve like a bridge between Angular and Phaser.
-- `src/game/EventBus.ts` - A simple event bus to communicate between Angular and Phaser.
+- `src/game/PhaserAngularEventBus.ts` - A simple event bus to communicate between Angular and Phaser.
 - `src/game` - Contains the game source code.
 - `src/game/main.ts` - The main **game** entry point. This contains the game configuration and start the game.
 - `src/game/scenes/` - The Phaser Scenes are in this folder.
@@ -56,19 +56,19 @@ We have provided a default project structure to get you started. This is as foll
 
 The `phaser-game.component.ts` component is the bridge between Angular and Phaser. It initializes the Phaser game and passes events between the two.
 
-To communicate between Angular and Phaser, you can use the **EventBus.ts** file. This is a simple event bus that allows you to emit and listen for events from both Angular and Phaser.
+To communicate between Angular and Phaser, you can use the **PhaserAngularEventBus.ts** file. This is a simple event bus that allows you to emit and listen for events from both Angular and Phaser.
 
 ```js
 // In Angular
-import { EventBus } from './EventBus';
+import { PhaserAngularEventBus } from './PhaserAngularEventBus';
 
 // In any Angular component method
 // Emit an event
-EventBus.emit('event-name', data);
+PhaserAngularEventBus.emit('event-name', data);
 
 // In Phaser
 // Listen for an event
-EventBus.on('event-name', (data) => {
+PhaserAngularEventBus.on('event-name', (data) => {
     // Do something with the data
 });
 ```
@@ -81,7 +81,7 @@ In Phaser, the Scene is the lifeblood of your game. It is where you sprites, gam
 
 You can get the current Phaser Scene from the component event `"current-active-scene"`. In order to do this, you need to emit the event `"current-scene-ready"` from the Phaser Scene class. This event should be emitted when the scene is ready to be used. You can see this done in all of the Scenes in our template.
 
-**Important**: When you add a new Scene to your game, make sure you expose to Angular by emitting the `"current-scene-ready"` event via the `EventBus`, like this:
+**Important**: When you add a new Scene to your game, make sure you expose to Angular by emitting the `"current-scene-ready"` event via the `PhaserAngularEventBus`, like this:
 
 
 ```js
@@ -97,7 +97,7 @@ class MyScene extends Phaser.Scene
         // Your Game Objects and logic here
 
         // At the end of create method:
-        EventBus.emit('current-scene-ready', this);
+        PhaserAngularEventBus.emit('current-scene-ready', this);
     }
 }
 ```
@@ -131,7 +131,7 @@ export class AppComponent implements AfterViewInit {
         const scene = this.phaserRef.scene;
 
         // Listen for the current active ready scene
-        EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
+        PhaserAngularEventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
             
         });
     }
@@ -142,7 +142,7 @@ In the code above, you can get a reference to the current Phaser Game instance a
 
 From this component reference, the game instance is available via `this.phaserRef.game` and the most recently active Scene via `this.phaserRef.scene`
 
-The `EventBus.on('current-scene-ready')` callback will also be invoked whenever the the Phaser Scene changes, as long as you emit the event via the EventBus, as outlined above.
+The `PhaserAngularEventBus.on('current-scene-ready')` callback will also be invoked whenever the the Phaser Scene changes, as long as you emit the event via the PhaserAngularEventBus, as outlined above.
 
 ## Handling Assets
 

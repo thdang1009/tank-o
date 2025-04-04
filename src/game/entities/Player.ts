@@ -12,7 +12,8 @@ export class Player {
     scene: Phaser.Scene;
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     isRapidFire: boolean = false;
-
+    playerLobbyId: string;
+    
     // Tank stats
     stats: TankStats;
 
@@ -37,9 +38,10 @@ export class Player {
     skillCooldownText: Phaser.GameObjects.Text;
     skillStatusEffect: Phaser.GameObjects.Sprite | null = null;
 
-    constructor(scene: Phaser.Scene, x: number, y: number, tankClass: TankClassType = TankClassType.VERSATILE) {
+    constructor(scene: Phaser.Scene, x: number, y: number, tankClass: TankClassType = TankClassType.VERSATILE, playerLobbyId?: string) {
         this.scene = scene;
         this.tankClass = tankClass;
+        this.playerLobbyId = playerLobbyId;
 
         // Get class definition
         const classDefinition = getTankClassDefinition(tankClass);

@@ -1,4 +1,4 @@
-import { EventBus } from '../EventBus';
+import { PhaserAngularEventBus } from '../PhaserAngularEventBus';
 import { Scene } from 'phaser';
 import { AssetsEnum } from '../../app/constants/assets-enum';
 
@@ -75,7 +75,7 @@ export class GameOver extends Scene
             this.restartText.setStyle({ color: '#00ff00' });
         });
 
-        EventBus.emit('current-scene-ready', this);
+        PhaserAngularEventBus.emit('current-scene-ready', this);
     }
 
     changeScene ()

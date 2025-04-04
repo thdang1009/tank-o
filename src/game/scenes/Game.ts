@@ -1,12 +1,13 @@
-import { EventBus } from '../EventBus';
+import { SocketEventBus } from '../utils/SocketEventBus';
 import { Scene } from 'phaser';
 import { GameConfig, GameManager } from '../managers/GameManager';
 import { MapType } from '../map/MapManager';
 import { TankClassType } from '../entities/TankClass';
 import { makeAudioPath } from '../../app/utils/asset-utils';
 import { GameMode } from '../constants/GameModes';
-import { SocketService, SocketEvents, Player as LobbyPlayer } from '../services/SocketService';
+import { SocketService, SocketEvents, LobbyPlayer } from '../services/SocketService';
 import { NotificationManager, NotificationType } from '../utils/NotificationManager';
+import { Player } from '../entities/Player';
 
 interface GameSceneData {
     gameMode: GameMode;
@@ -146,7 +147,7 @@ export class Game extends Scene
             this.setupMultiplayer();
         }
 
-        EventBus.emit('current-scene-ready', this);
+        SocketEventBus.emit('current-scene-ready', this);
     }
     
     createModeHUD() {
@@ -195,12 +196,12 @@ export class Game extends Scene
         }
 
         // Send player position in multiplayer mode
-        if (this.isMultiplayer && this.socketService.isConnected() && this.player) {
+        if (this.isMultiplayer && this.socketService.isConnected() && this.gameManager.player) {
             this.socketService.emit('player-move', {
-                x: this.player.x,
-                y: this.player.y,
-                rotation: this.player.rotation,
-                turretRotation: this.player.turret.rotation
+                x: this.gameManager.player.body.x,
+                y: this.gameManager.player.body.y,
+                rotation: this.gameManager.player.body.rotation,
+                turretRotation: this.gameManager.player.barrel.rotation
             });
         }
     }
@@ -239,17 +240,17 @@ export class Game extends Scene
         if (!this.lobbyPlayers.length) return;
         
         // Filter out current player
-        const otherPlayers = this.lobbyPlayers.filter(
+        const otherLobbyPlayers = this.lobbyPlayers.filter(
             p => p.id !== this.socketService.socket?.id
         );
         
         // Create a tank for each other player
-        otherPlayers.forEach(player => {
-            const tankClass = player.tankClass as TankClassType || TankClassType.BALANCED;
+        otherLobbyPlayers.forEach(lobbyPlayer => {
+            const tankClass = lobbyPlayer.tankClass as TankClassType || TankClassType.VERSATILE;
             
             // Create at a random position away from the current player
-            const x = this.player.x + (Math.random() * 400 - 200);
-            const y = this.player.y + (Math.random() * 400 - 200);
+            const x = this.gameManager.player.body.x + (Math.random() * 400 - 200);
+            const y = this.gameManager.player.body.y + (Math.random() * 400 - 200);
             
             // Create the player tank
             const otherPlayer = new Player(
@@ -257,11 +258,11 @@ export class Game extends Scene
                 x,
                 y,
                 tankClass,
-                player.username
+                lobbyPlayer.id
             );
             
             // Store the player
-            this.otherPlayers.set(player.id, otherPlayer);
+            this.otherPlayers.set(lobbyPlayer.id, otherPlayer);
         });
     }
     
@@ -274,9 +275,9 @@ export class Game extends Scene
             // Update other player position
             const otherPlayer = this.otherPlayers.get(playerId);
             if (otherPlayer) {
-                otherPlayer.setPosition(x, y);
-                otherPlayer.setRotation(rotation);
-                otherPlayer.turret.setRotation(turretRotation);
+                otherPlayer.body.setPosition(x, y);
+                otherPlayer.body.rotation = rotation;
+                otherPlayer.barrel.rotation = turretRotation;
             }
         });
         
@@ -288,7 +289,7 @@ export class Game extends Scene
             const otherPlayer = this.otherPlayers.get(playerId);
             if (otherPlayer) {
                 // Create bullet for other player
-                otherPlayer.shoot();
+                otherPlayer.fire();
             }
         });
         
@@ -298,7 +299,7 @@ export class Game extends Scene
             
             // Check if current player was hit
             if (playerId === this.socketService.socket?.id) {
-                this.player.takeDamage(damage);
+                this.gameManager.player.takeDamage(damage);
             } else {
                 // Other player was hit
                 const otherPlayer = this.otherPlayers.get(playerId);
@@ -315,7 +316,7 @@ export class Game extends Scene
             // Check if other player was destroyed
             const otherPlayer = this.otherPlayers.get(playerId);
             if (otherPlayer) {
-                otherPlayer.destroy();
+                otherPlayer.die();
                 this.otherPlayers.delete(playerId);
             }
         });
@@ -325,11 +326,11 @@ export class Game extends Scene
             // Remove disconnected player
             const otherPlayer = this.otherPlayers.get(playerId);
             if (otherPlayer) {
-                otherPlayer.destroy();
+                otherPlayer.die();
                 this.otherPlayers.delete(playerId);
                 
                 this.notificationManager.show(
-                    `Player ${otherPlayer.name} disconnected`, 
+                    `Player ${otherPlayer.playerLobbyId} disconnected`, 
                     { type: NotificationType.WARNING }
                 );
             }

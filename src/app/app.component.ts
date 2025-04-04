@@ -1,11 +1,8 @@
 import { AfterViewInit, Component, ViewChild } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { PhaserGame } from '../game/phaser-game.component';
-import { MainMenu } from '../game/scenes/MainMenu';
 import { CommonModule } from '@angular/common';
-import { EventBus } from '../game/EventBus';
-import { AssetsEnum } from './constants/assets-enum';
-import { Game } from '../game/scenes/Game';
+import { PhaserAngularEventBus } from '../game/PhaserAngularEventBus';
 
 @Component({
     selector: 'app-root',
@@ -22,7 +19,7 @@ export class AppComponent implements AfterViewInit {
     @ViewChild(PhaserGame) phaserRef!: PhaserGame;
 
     ngAfterViewInit() {
-        EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
+        PhaserAngularEventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
             this.canMoveSprite = scene.scene.key !== 'MainMenu';
         });
     }

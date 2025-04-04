@@ -1,5 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
-import { AssetsEnum } from '../constants/AssetsEnum';
+import { AssetsEnum } from '../../app/constants/assets-enum';
 import { SocketService, SocketEvents } from '../services/SocketService';
 
 export class JoinLobby extends Scene {

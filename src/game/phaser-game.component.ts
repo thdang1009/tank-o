@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from "@angular/core";
 import Phaser from "phaser";
 import StartGame from "./main";
-import { EventBus } from "./EventBus";
+import { SocketEventBus } from "./utils/SocketEventBus";
 
 @Component({
     selector: 'phaser-game',
@@ -20,7 +20,7 @@ export class PhaserGame implements OnInit
     {
         this.game = StartGame('game-container');
 
-        EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
+        SocketEventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
 
             this.scene = scene;
 

@@ -1,5 +1,7 @@
 import { io, Socket } from 'socket.io-client';
-import { EventBus } from '../utils/EventBus';
+import { SocketEventBus } from '../utils/SocketEventBus';
+import { TankClassType } from '../entities/TankClass';
+import { MapType } from '../map/MapManager';
 
 // Define the server URL (adjust for production)
 const SERVER_URL = 'http://localhost:3000';
@@ -39,20 +41,20 @@ export interface BulletData {
   speed: number;
 }
 
-export interface Player {
+export interface LobbyPlayer {
     id: string;
     username: string;
     isHost: boolean;
     isReady: boolean;
-    tankClass?: string;
+    tankClass?: TankClassType;
 }
 
 export interface Lobby {
     id: string;
     host: string;
     gameMode: string;
-    mapType: string;
-    players: Player[];
+    mapType: MapType;
+    players: LobbyPlayer[];
     maxPlayers: number;
     isPrivate: boolean;
 }
@@ -84,7 +86,7 @@ export enum SocketEvents {
 // Main Socket Service
 export class SocketService {
   private static instance: SocketService;
-  private socket: Socket | null = null;
+  public socket: Socket | null = null;
   private connected: boolean = false;
   private lobbyId: string | null = null;
   private playerId: string | null = null;
@@ -141,8 +143,8 @@ export class SocketService {
       this.socket.once(SocketEvents.CONNECT, () => {
         console.log('Connected to server!');
         this.connected = true;
-        this.playerId = this.socket.id;
-        EventBus.emit('socket-connected', { id: this.socket.id });
+        this.playerId = this.socket?.id ?? null;
+        SocketEventBus.emit('socket-connected', { id: this.socket?.id ?? null });
         resolve();
       });
       
@@ -164,7 +166,7 @@ export class SocketService {
       this.lobbyId = null;
       this.playerId = null;
       this.isHost = false;
-      EventBus.emit('socket-disconnected');
+      SocketEventBus.emit('socket-disconnected');
     }
   }
   
@@ -180,13 +182,13 @@ export class SocketService {
     // Handle connection events
     this.socket?.on(SocketEvents.CONNECT, () => {
       this.connected = true;
-      this.playerId = this.socket.id;
-      EventBus.emit('socket-connected', { id: this.socket.id });
+      this.playerId = this.socket?.id ?? null;
+      SocketEventBus.emit('socket-connected', { id: this.socket?.id ?? null });
     });
     
     this.socket?.on(SocketEvents.DISCONNECT, () => {
       this.connected = false;
-      EventBus.emit('socket-disconnected');
+      SocketEventBus.emit('socket-disconnected');
     });
     
     // Handle lobby events
@@ -194,61 +196,61 @@ export class SocketService {
       this.lobbyId = data.lobbyId;
       this.playerId = data.playerId;
       this.isHost = data.isHost;
-      EventBus.emit('lobby-created', data);
+      SocketEventBus.emit('lobby-created', data);
     });
     
     this.socket?.on(SocketEvents.LOBBY_JOINED, (data) => {
       this.lobbyId = data.lobbyId;
       this.playerId = data.playerId;
       this.isHost = false;
-      EventBus.emit('lobby-joined', data);
+      SocketEventBus.emit('lobby-joined', data);
     });
     
     this.socket?.on(SocketEvents.LOBBY_UPDATED, (data) => {
-      EventBus.emit('lobby-updated', data);
+      SocketEventBus.emit('lobby-updated', data);
     });
     
     this.socket?.on(SocketEvents.PLAYER_LEFT, (data) => {
-      EventBus.emit('player-left', data);
+      SocketEventBus.emit('player-left', data);
     });
     
     this.socket?.on(SocketEvents.CHANGE_GAME_MODE, (data) => {
-      EventBus.emit('game-mode-changed', data);
+      SocketEventBus.emit('game-mode-changed', data);
     });
     
     this.socket?.on(SocketEvents.CHANGE_MAP_TYPE, (data) => {
-      EventBus.emit('map-type-changed', data);
+      SocketEventBus.emit('map-type-changed', data);
     });
     
     this.socket?.on(SocketEvents.SELECT_TANK_CLASS, (data) => {
-      EventBus.emit('tank-class-selected', data);
+      SocketEventBus.emit('tank-class-selected', data);
     });
     
     this.socket?.on(SocketEvents.TOGGLE_READY, (data) => {
-      EventBus.emit('ready-status-changed', data);
+      SocketEventBus.emit('ready-status-changed', data);
     });
     
     this.socket?.on(SocketEvents.START_GAME, (data) => {
-      EventBus.emit('game-starting', data);
+      SocketEventBus.emit('game-starting', data);
     });
     
     // Handle game events
     this.socket?.on('playerMoved', (data) => {
-      EventBus.emit('player-moved', data);
+      SocketEventBus.emit('player-moved', data);
     });
     
     this.socket?.on('bulletFired', (data) => {
-      EventBus.emit('bullet-fired', data);
+      SocketEventBus.emit('bullet-fired', data);
     });
     
     this.socket?.on('playerHit', (data) => {
-      EventBus.emit('player-hit', data);
+      SocketEventBus.emit('player-hit', data);
     });
     
     // Handle errors
     this.socket?.on(SocketEvents.ERROR, (data) => {
       console.error('Socket error:', data);
-      EventBus.emit('socket-error', data);
+      SocketEventBus.emit('socket-error', data);
     });
   }
   

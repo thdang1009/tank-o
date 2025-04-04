@@ -18,8 +18,8 @@
         "socket.io",
         "tanks"
     ],
-    "author": "",
-    "license": "ISC",
+    "author": "thdang1009@gmail.com",
+    "license": "MIT",
     "devDependencies": {
         "@angular-devkit/build-angular": "^17.2.2",
         "@angular/cli": "^17.2.2",

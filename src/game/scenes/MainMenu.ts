@@ -1,6 +1,6 @@
 import { GameObjects, Scene } from 'phaser';
 import { AssetsEnum } from '../../app/constants/assets-enum';
-import { EventBus } from '../EventBus';
+import { PhaserAngularEventBus } from '../PhaserAngularEventBus';
 import { MapType } from '../map/MapManager';
 import { GameMode } from '../constants/GameModes';
 import { TankClassType } from '../entities/TankClass';
@@ -73,7 +73,7 @@ export class MainMenu extends Scene {
         this.createMainButtons();
 
         // Emit event for Angular component
-        EventBus.emit('current-scene-ready', this);
+        PhaserAngularEventBus.emit('current-scene-ready', this);
     }
 
     createUserProfile() {

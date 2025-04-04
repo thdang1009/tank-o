@@ -1,8 +1,8 @@
 /**
  * Event bus for game-wide communication
  */
-export class EventBus {
-    private static instance: EventBus;
+export class SocketEventBus {
+    private static instance: SocketEventBus;
     private events: Map<string, Function[]>;
     
     /**
@@ -15,11 +15,11 @@ export class EventBus {
     /**
      * Get the singleton instance
      */
-    public static getInstance(): EventBus {
-        if (!EventBus.instance) {
-            EventBus.instance = new EventBus();
+    public static getInstance(): SocketEventBus {
+        if (!SocketEventBus.instance) {
+            SocketEventBus.instance = new SocketEventBus();
         }
-        return EventBus.instance;
+        return SocketEventBus.instance;
     }
     
     /**

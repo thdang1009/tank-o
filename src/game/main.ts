@@ -6,9 +6,6 @@ import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { ClassSelection } from './scenes/ClassSelection';
 import { MapSelection } from './scenes/MapSelection';
-import { ModeSelection } from './scenes/ModeSelection';
-import { MultiplayerLobby } from './scenes/MultiplayerLobby';
-import { StageLobby } from './scenes/StageLobby';
 import { LobbyScene } from './scenes/LobbyScene';
 import { JoinLobby } from './scenes/JoinLobby';
 
@@ -31,12 +28,9 @@ const config: Phaser.Types.Core.GameConfig = {
         Boot,
         Preloader,
         MainMenu,
-        ModeSelection,
         MapSelection,
         ClassSelection,
         MainGame,
-        MultiplayerLobby,
-        StageLobby,
         LobbyScene,
         JoinLobby,
         GameOver
