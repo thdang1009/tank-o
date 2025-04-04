@@ -95,7 +95,7 @@ export class LobbyScene extends Scene {
                 id: 'player1',
                 name: this.isHost ? 'You (Host)' : 'You',
                 tankClass: TankClassType.VERSATILE,
-                ready: false,
+                ready: true,
                 isHost: this.isHost,
                 avatar: AssetsEnum.TANK_BLUE
             }
