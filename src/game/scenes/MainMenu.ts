@@ -4,6 +4,7 @@ import { EventBus } from '../EventBus';
 import { MapType } from '../map/MapManager';
 import { GameMode } from '../constants/GameModes';
 import { TankClassType } from '../entities/TankClass';
+import { SocketService } from '../services/SocketService';
 
 // Mock user data for demonstration purposes
 interface User {
@@ -222,12 +223,13 @@ export class MainMenu extends Scene {
     createMainButtons() {
         // Main buttons container in the center of the screen
         const mainButtonsContainer = this.add.container(512, 450);
-
+        
         // Create main buttons
-        this.createSoloButton(mainButtonsContainer, -300, 0);
-        this.createLobbyButton(mainButtonsContainer, 0, 0);
-        this.createTankCollectionButton(mainButtonsContainer, 300, 0);
-        this.createSettingsButton(mainButtonsContainer, 0, 150);
+        this.createSoloButton(mainButtonsContainer, -300, -60);
+        this.createLobbyButton(mainButtonsContainer, 0, -60);
+        this.createJoinLobbyButton(mainButtonsContainer, 300, -60);
+        this.createTankCollectionButton(mainButtonsContainer, 0, 90);
+        this.createSettingsButton(mainButtonsContainer, 0, 190);
     }
 
     createSoloButton(container: Phaser.GameObjects.Container, x: number, y: number) {
@@ -306,6 +308,45 @@ export class MainMenu extends Scene {
             });
 
         container.add(lobbyButtonContainer);
+    }
+
+    createJoinLobbyButton(container: Phaser.GameObjects.Container, x: number, y: number) {
+        // Join Lobby Button
+        const joinLobbyContainer = this.add.container(x, y);
+        
+        // Background
+        const joinLobbyBg = this.add.rectangle(0, 0, 250, 180, 0x555588, 0.8)
+            .setStrokeStyle(2, 0xffffff);
+        joinLobbyContainer.add(joinLobbyBg);
+        
+        // Icon (placeholder)
+        const joinLobbyIcon = this.add.image(0, -40, AssetsEnum.TANK_SAND)
+            .setScale(0.7);
+        joinLobbyContainer.add(joinLobbyIcon);
+        
+        // Text
+        const joinLobbyText = this.add.text(0, 40, 'JOIN LOBBY', {
+            fontSize: '24px',
+            fontStyle: 'bold',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5, 0.5);
+        joinLobbyContainer.add(joinLobbyText);
+        
+        // Make the button interactive
+        joinLobbyBg.setInteractive({ useHandCursor: true })
+            .on('pointerover', () => {
+                joinLobbyBg.setFillStyle(0x7777aa, 0.8);
+            })
+            .on('pointerout', () => {
+                joinLobbyBg.setFillStyle(0x555588, 0.8);
+            })
+            .on('pointerdown', () => {
+                this.joinLobby();
+            });
+        
+        container.add(joinLobbyContainer);
     }
 
     createTankCollectionButton(container: Phaser.GameObjects.Container, x: number, y: number) {
@@ -428,12 +469,22 @@ export class MainMenu extends Scene {
     }
 
     createLobby() {
-        // Create a new lobby with this player as host
-        const lobbyId = 'lobby_' + Math.floor(Math.random() * 10000);
-        this.scene.start('LobbyScene', {
-            isHost: true,
-            lobbyId: lobbyId
-        });
+        // Connect to socket server
+        const socketService = SocketService.getInstance();
+        
+        socketService.connect()
+            .then(() => {
+                // Go to the lobby scene as host
+                this.scene.start('LobbyScene', {
+                    username: 'Commander',
+                    isHost: true
+                });
+            })
+            .catch(error => {
+                console.error('Failed to connect to server:', error);
+                // Show error notification
+                this.showNotification('Cannot connect to server. Please try again later.', '#ff0000');
+            });
     }
 
     openTankCollection() {
@@ -454,40 +505,49 @@ export class MainMenu extends Scene {
         this.showNotification(`Invitation sent to ${friendName}!`);
     }
 
-    showNotification(message: string) {
-        // Create a notification that fades out
-        const notification = this.add.container(512, 100);
+    joinLobby() {
+        // Connect to socket server
+        const socketService = SocketService.getInstance();
+        
+        socketService.connect()
+            .then(() => {
+                // Go to join lobby scene
+                this.scene.start('JoinLobby');
+            })
+            .catch(error => {
+                console.error('Failed to connect to server:', error);
+                // Show error notification
+                this.showNotification('Cannot connect to server. Please try again later.', '#ff0000');
+            });
+    }
 
-        const notifBg = this.add.rectangle(0, 0, 400, 40, 0x000000, 0.8)
-            .setStrokeStyle(1, 0xffffff);
-
-        const notifText = this.add.text(0, 0, message, {
-            fontSize: '16px',
-            color: '#ffffff'
+    showNotification(message: string, color: string = '#ffffff') {
+        // Remove existing notification if any
+        const existingNotification = this.children.getByName('notification');
+        if (existingNotification) {
+            existingNotification.destroy();
+        }
+        
+        // Create container for notification
+        const container = this.add.container(512, 100);
+        container.setName('notification');
+        
+        // Background
+        const bg = this.add.rectangle(0, 0, 500, 50, 0x000000, 0.8)
+            .setStrokeStyle(2, 0xffffff);
+        
+        // Message text
+        const text = this.add.text(0, 0, message, {
+            fontSize: '18px',
+            color: color,
+            align: 'center'
         }).setOrigin(0.5, 0.5);
-
-        notification.add(notifBg);
-        notification.add(notifText);
-
-        // Make the notification appear and then fade out
-        notification.setAlpha(0);
-        this.tweens.add({
-            targets: notification,
-            alpha: 1,
-            duration: 300,
-            ease: 'Power2',
-            onComplete: () => {
-                this.tweens.add({
-                    targets: notification,
-                    alpha: 0,
-                    delay: 2000,
-                    duration: 300,
-                    ease: 'Power2',
-                    onComplete: () => {
-                        notification.destroy();
-                    }
-                });
-            }
+        
+        container.add([bg, text]);
+        
+        // Set a timer to remove the notification
+        this.time.delayedCall(5000, () => {
+            container.destroy();
         });
     }
 }
