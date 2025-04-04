@@ -144,7 +144,7 @@ export class SocketService {
         console.log('Connected to server!');
         this.connected = true;
         this.playerId = this.socket?.id ?? null;
-        SocketEventBus.emit('socket-connected', { id: this.socket?.id ?? null });
+        SocketEventBus.getInstance().emit('socket-connected', { id: this.socket?.id ?? null });
         resolve();
       });
       
@@ -166,7 +166,7 @@ export class SocketService {
       this.lobbyId = null;
       this.playerId = null;
       this.isHost = false;
-      SocketEventBus.emit('socket-disconnected');
+      SocketEventBus.getInstance().emit('socket-disconnected');
     }
   }
   
@@ -183,12 +183,12 @@ export class SocketService {
     this.socket?.on(SocketEvents.CONNECT, () => {
       this.connected = true;
       this.playerId = this.socket?.id ?? null;
-      SocketEventBus.emit('socket-connected', { id: this.socket?.id ?? null });
+      SocketEventBus.getInstance().emit('socket-connected', { id: this.socket?.id ?? null });
     });
     
     this.socket?.on(SocketEvents.DISCONNECT, () => {
       this.connected = false;
-      SocketEventBus.emit('socket-disconnected');
+      SocketEventBus.getInstance().emit('socket-disconnected');
     });
     
     // Handle lobby events
@@ -196,61 +196,61 @@ export class SocketService {
       this.lobbyId = data.lobbyId;
       this.playerId = data.playerId;
       this.isHost = data.isHost;
-      SocketEventBus.emit('lobby-created', data);
+      SocketEventBus.getInstance().emit('lobby-created', data);
     });
     
     this.socket?.on(SocketEvents.LOBBY_JOINED, (data) => {
       this.lobbyId = data.lobbyId;
       this.playerId = data.playerId;
       this.isHost = false;
-      SocketEventBus.emit('lobby-joined', data);
+      SocketEventBus.getInstance().emit('lobby-joined', data);
     });
     
     this.socket?.on(SocketEvents.LOBBY_UPDATED, (data) => {
-      SocketEventBus.emit('lobby-updated', data);
+      SocketEventBus.getInstance().emit('lobby-updated', data);
     });
     
     this.socket?.on(SocketEvents.PLAYER_LEFT, (data) => {
-      SocketEventBus.emit('player-left', data);
+      SocketEventBus.getInstance().emit('player-left', data);
     });
     
     this.socket?.on(SocketEvents.CHANGE_GAME_MODE, (data) => {
-      SocketEventBus.emit('game-mode-changed', data);
+      SocketEventBus.getInstance().emit('game-mode-changed', data);
     });
     
     this.socket?.on(SocketEvents.CHANGE_MAP_TYPE, (data) => {
-      SocketEventBus.emit('map-type-changed', data);
+      SocketEventBus.getInstance().emit('map-type-changed', data);
     });
     
     this.socket?.on(SocketEvents.SELECT_TANK_CLASS, (data) => {
-      SocketEventBus.emit('tank-class-selected', data);
+      SocketEventBus.getInstance().emit('tank-class-selected', data);
     });
     
     this.socket?.on(SocketEvents.TOGGLE_READY, (data) => {
-      SocketEventBus.emit('ready-status-changed', data);
+      SocketEventBus.getInstance().emit('ready-status-changed', data);
     });
     
     this.socket?.on(SocketEvents.START_GAME, (data) => {
-      SocketEventBus.emit('game-starting', data);
+      SocketEventBus.getInstance().emit('game-starting', data);
     });
     
     // Handle game events
     this.socket?.on('playerMoved', (data) => {
-      SocketEventBus.emit('player-moved', data);
+      SocketEventBus.getInstance().emit('player-moved', data);
     });
     
     this.socket?.on('bulletFired', (data) => {
-      SocketEventBus.emit('bullet-fired', data);
+      SocketEventBus.getInstance().emit('bullet-fired', data);
     });
     
     this.socket?.on('playerHit', (data) => {
-      SocketEventBus.emit('player-hit', data);
+      SocketEventBus.getInstance().emit('player-hit', data);
     });
     
     // Handle errors
     this.socket?.on(SocketEvents.ERROR, (data) => {
       console.error('Socket error:', data);
-      SocketEventBus.emit('socket-error', data);
+      SocketEventBus.getInstance().emit('socket-error', data);
     });
   }
   
@@ -431,6 +431,49 @@ export class SocketService {
   public once(event: string, callback: (...args: any[]) => void): void {
     if (this.socket) {
       this.socket.once(event, callback);
+    }
+  }
+
+  /**
+   * Emit an event to the server
+   * @param event Event name
+   * @param data Event data
+   */
+  public emit(event: string, data?: any): void {
+    if (this.socket) {
+      this.socket.emit(event, data);
+    } else {
+      console.warn(`Socket not connected, can't emit ${event}`);
+    }
+  }
+
+  /**
+   * Listen for an event from the server
+   * @param event Event name
+   * @param callback Callback function
+   */
+  public on(event: string, callback: Function): void {
+    if (this.socket) {
+      this.socket.on(event, callback as any);
+    } else {
+      console.warn(`Socket not connected, can't listen for ${event}`);
+    }
+  }
+
+  /**
+   * Remove event listener
+   * @param event Event name
+   * @param callback Optional callback to remove specific listener
+   */
+  public off(event: string, callback?: Function): void {
+    if (this.socket) {
+      if (callback) {
+        this.socket.off(event, callback as any);
+      } else {
+        this.socket.off(event);
+      }
+    } else {
+      console.warn(`Socket not connected, can't remove listener for ${event}`);
     }
   }
 }

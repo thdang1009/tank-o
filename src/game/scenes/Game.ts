@@ -8,8 +8,9 @@ import { GameMode } from '../constants/GameModes';
 import { SocketService, SocketEvents, LobbyPlayer } from '../services/SocketService';
 import { NotificationManager, NotificationType } from '../utils/NotificationManager';
 import { Player } from '../entities/Player';
+import { PhaserAngularEventBus } from '../PhaserAngularEventBus';
 
-interface GameSceneData {
+export interface GameSceneData {
     gameMode: GameMode;
     mapType: MapType;
     selectedClass?: TankClassType;
@@ -56,6 +57,7 @@ export class Game extends Scene
     }
 
     init(data: GameSceneData) {
+        console.log('Game init', data);
         this.selectedMapType = data.mapType;
         this.selectedTankClass = data.selectedClass || TankClassType.VERSATILE;
         this.selectedGameMode = data.gameMode;
@@ -147,7 +149,8 @@ export class Game extends Scene
             this.setupMultiplayer();
         }
 
-        SocketEventBus.emit('current-scene-ready', this);
+        // Notify that the scene is ready
+        PhaserAngularEventBus.emit('current-scene-ready', this);
     }
     
     createModeHUD() {

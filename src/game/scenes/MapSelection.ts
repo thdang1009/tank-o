@@ -3,6 +3,7 @@ import { AssetsEnum } from '../../app/constants/assets-enum';
 import { MapType } from '../map/MapManager';
 import { GameMode } from '../constants/GameModes';
 import { SocketEventBus } from '../utils/SocketEventBus';
+import { PhaserAngularEventBus } from '../PhaserAngularEventBus';
 
 interface MapSelectionSceneData {
     gameMode: GameMode;
@@ -75,8 +76,8 @@ export class MapSelection extends Scene {
         // Create back button
         this.createBackButton();
         
-        // Emit event for Angular component
-        SocketEventBus.emit('current-scene-ready', this);
+        // Notify that scene is ready
+        PhaserAngularEventBus.emit('current-scene-ready', this);
     }
     
     createMapButtons() {

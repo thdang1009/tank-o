@@ -3,6 +3,7 @@ import { TankClassType, TankClasses } from '../entities/TankClass';
 import { MapType } from '../map/MapManager';
 import { AssetsEnum } from '../../app/constants/assets-enum';
 import { GameMode } from '../constants/GameModes';
+import { GameSceneData } from './Game';
 
 interface ClassSelectionSceneData {
     mapType: MapType;
@@ -253,14 +254,15 @@ export class ClassSelection extends Scene {
 
     startGame() {
         if (!this.selectedClass) return;
-        
-        // Start game scene with selected map, class, and game mode
-        this.scene.start('Game', {
+        console.log('Starting game with class:', this.selectedClass);
+        const gameSceneData: GameSceneData = {
             mapType: this.selectedMapType,
-            tankClass: this.selectedClass,
+            selectedClass: this.selectedClass,
             gameMode: this.selectedGameMode,
             stageLevel: this.stageLevel,
             difficulty: this.difficulty
-        });
+        };
+        // Start game scene with selected map, class, and game mode
+        this.scene.start('Game', gameSceneData);
     }
 } 
