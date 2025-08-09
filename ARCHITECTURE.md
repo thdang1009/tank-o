@@ -160,7 +160,7 @@ server/
 
 ## Folder Structure & Organization
 
-### Current Project Structure
+### Current Project Structure (Updated)
 ```
 tank-o/
 ├── src/                       # Frontend source code
@@ -172,8 +172,10 @@ tank-o/
 │   │   └── utils/             # Utility functions
 │   │
 │   ├── game/                  # Phaser game engine code
-│   │   ├── constants/         # Game constants
+│   │   ├── constants/         # Game constants (imports from shared)
+│   │   │   └── GameModes.ts   # ✅ UPDATED: Now uses shared enums
 │   │   ├── entities/          # Game entities (Player, Enemy, etc.)
+│   │   │   └── TankClass.ts   # ✅ UPDATED: Now uses shared enums
 │   │   ├── managers/          # Game managers (GameManager)
 │   │   ├── map/               # Map system
 │   │   ├── scenes/            # Phaser scenes
@@ -181,6 +183,17 @@ tank-o/
 │   │   ├── utils/             # Game utilities
 │   │   ├── main.ts            # Game entry point
 │   │   └── phaser-game.component.ts # Angular-Phaser bridge
+│   │
+│   ├── shared/                # ✅ NEW: Shared TypeScript code
+│   │   ├── enums/
+│   │   │   └── game-enums.ts  # Shared enums (GameMode, TankClassType, etc.)
+│   │   ├── interfaces/
+│   │   │   └── socket-events.ts # Socket event definitions
+│   │   ├── types/
+│   │   │   └── game-types.ts  # Common game type definitions
+│   │   └── utils/
+│   │       ├── constants.ts   # Shared constants
+│   │       └── validation.ts  # Shared validation utilities
 │   │
 │   ├── assets/                # Static game assets
 │   │   ├── audio/             # Sound effects and music
@@ -191,24 +204,46 @@ tank-o/
 │   └── styles.css             # Global styles
 │
 ├── server/                    # Backend server code
-│   └── server.js              # Node.js + Express + Socket.IO
+│   ├── src/                   # ✅ STRUCTURED: Organized server code
+│   │   ├── controllers/       # Request handlers
+│   │   ├── services/          # Business logic (uses shared validation)
+│   │   │   └── LobbyService.js # ✅ UPDATED: Uses shared validation
+│   │   ├── models/            # Data models
+│   │   ├── middleware/        # Express middleware
+│   │   ├── config/            # Server configuration
+│   │   └── app.js             # Express app setup
+│   ├── package.json           # ✅ NEW: Server-specific dependencies
+│   └── server.js              # Node.js + Express + Socket.IO entry point
 │
+├── shared/                    # ✅ NEW: JavaScript versions for Node.js
+│   └── utils/
+│       └── validation.js      # CommonJS version for server imports
+│
+├── docs/                      # ✅ NEW: Documentation
+├── scripts/                   # ✅ NEW: Build and deployment scripts
 ├── angular.json               # Angular CLI configuration
 ├── package.json               # Dependencies and scripts
 ├── tsconfig.json              # TypeScript configuration
+├── tsconfig.paths.json        # ✅ NEW: Path mapping configuration
 └── README.md                  # Project documentation
 ```
 
-### Recommended Enhanced Structure
+### Current Enhanced Structure (After Shared Code Refactoring)
 ```
 tank-o/
 ├── src/
 │   ├── app/                   # Angular application layer
 │   ├── game/                  # Game engine layer
-│   ├── shared/                # Shared types and interfaces
-│   │   ├── types/
+│   ├── shared/                # ✅ IMPLEMENTED: Shared types between client/server
+│   │   ├── enums/
+│   │   │   └── game-enums.ts  # Game modes, tank classes, etc.
 │   │   ├── interfaces/
-│   │   └── enums/
+│   │   │   └── socket-events.ts # Socket event definitions
+│   │   ├── types/
+│   │   │   └── game-types.ts  # Common game type definitions
+│   │   └── utils/
+│   │       ├── constants.ts   # Shared constants
+│   │       └── validation.ts  # Shared validation utilities
 │   └── assets/
 │
 ├── server/                    # Backend application
@@ -223,14 +258,61 @@ tank-o/
 │   ├── tests/                 # Server tests
 │   └── dist/                  # Compiled JavaScript
 │
-├── shared/                    # Shared code between client/server
+├── shared/                    # ✅ IMPLEMENTED: JavaScript versions for Node.js
+│   ├── utils/
+│   │   └── validation.js      # CommonJS version for server imports
 │   ├── types/                 # Common TypeScript interfaces
-│   ├── constants/             # Shared constants
-│   └── utils/                 # Shared utility functions
+│   └── constants/             # Shared constants
 │
-├── docs/                      # Documentation
-├── scripts/                   # Build and deployment scripts
+├── docs/                      # ✅ IMPLEMENTED: Documentation
+├── scripts/                   # ✅ IMPLEMENTED: Build and deployment scripts
 └── tests/                     # End-to-end tests
+```
+
+---
+
+## Recent Architecture Changes
+
+### Shared Code Refactoring (2025-08-09)
+
+**Overview:** Major refactoring to eliminate code duplication between client and server by implementing a shared code structure.
+
+**Changes Made:**
+1. **Created `/src/shared/` directory** with TypeScript definitions:
+   - `enums/game-enums.ts` - Centralized game enums (GameMode, TankClassType, etc.)
+   - `types/game-types.ts` - Common type definitions
+   - `interfaces/socket-events.ts` - Socket event interfaces
+   - `utils/validation.ts` - Shared validation utilities
+
+2. **Created `/shared/` directory** with JavaScript versions:
+   - `utils/validation.js` - CommonJS version for Node.js server
+
+3. **Updated client-side imports:**
+   - `GameModes.ts` now imports and re-exports from shared enums
+   - `TankClass.ts` now imports and re-exports TankClassType
+   - Added missing game modes and tank classes
+
+4. **Updated server-side imports:**
+   - `LobbyService.js` now uses shared validation utilities
+   - Fixed import paths to use the new shared structure
+
+**Benefits:**
+- ✅ **Code Consistency:** Single source of truth for game enums and types
+- ✅ **Reduced Duplication:** Eliminated duplicate enum definitions
+- ✅ **Type Safety:** Shared interfaces ensure client-server compatibility
+- ✅ **Easier Maintenance:** Changes to game modes/types only need to be made once
+- ✅ **Better Organization:** Clear separation between shared and application-specific code
+
+**Technical Implementation:**
+```typescript
+// Before: Duplicate enum definitions
+// Client: src/game/constants/GameModes.ts (local enum)
+// Server: Hardcoded strings
+
+// After: Shared enum with re-exports
+// Shared: src/shared/enums/game-enums.ts (source of truth)
+// Client: import { GameMode } from '../../shared/enums/game-enums'
+// Server: require('../../../shared/utils/validation') (JS version)
 ```
 
 ---

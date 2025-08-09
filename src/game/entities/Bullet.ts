@@ -8,6 +8,10 @@ export class Bullet {
     speed: number = 400;
     lifespan: number = 2000; // 2 seconds
     collisionsSetUp: boolean = false; // Added property to track collision setup
+    
+    // Multiplayer properties
+    private multiplayerId: string = '';
+    private ownerId: string = '';
 
     constructor(scene: Phaser.Scene, x: number, y: number, angle: number, damage: number = 10, texture: string = AssetsEnum.BULLET_BLUE_1) {
         this.scene = scene;
@@ -59,5 +63,19 @@ export class Bullet {
         if (this.sprite && this.sprite.active) {
             this.sprite.destroy();
         }
+    }
+    
+    // Multiplayer methods
+    setMultiplayerInfo(bulletId: string, playerId: string) {
+        this.multiplayerId = bulletId;
+        this.ownerId = playerId;
+    }
+    
+    getMultiplayerId(): string {
+        return this.multiplayerId;
+    }
+    
+    getOwnerId(): string {
+        return this.ownerId;
     }
 } 

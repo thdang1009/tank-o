@@ -9,6 +9,7 @@ import { SocketService, SocketEvents, LobbyPlayer } from '../services/SocketServ
 import { NotificationManager, NotificationType } from '../utils/NotificationManager';
 import { Player } from '../entities/Player';
 import { PhaserAngularEventBus } from '../PhaserAngularEventBus';
+import { GameStateManager, gameStateManager } from '../managers/GameStateManager';
 
 export interface GameSceneData {
     gameMode: GameMode;
@@ -81,6 +82,11 @@ export class Game extends Scene
             if (currentPlayer && currentPlayer.tankClass) {
                 this.selectedTankClass = currentPlayer.tankClass as TankClassType;
             }
+        }
+        
+        // Initialize GameStateManager for multiplayer
+        if (this.isMultiplayer) {
+            gameStateManager.initializeGameState(this.lobbyId, data.gameMode, data.mapType);
         }
     }
 
@@ -198,15 +204,74 @@ export class Game extends Scene
             this.gameManager.update(time, delta);
         }
 
-        // Send player position in multiplayer mode
-        if (this.isMultiplayer && this.socketService.isConnected() && this.gameManager.player) {
-            this.socketService.emit('player-move', {
-                x: this.gameManager.player.body.x,
-                y: this.gameManager.player.body.y,
-                rotation: this.gameManager.player.body.rotation,
-                turretRotation: this.gameManager.player.barrel.rotation
-            });
+        // Update multiplayer state
+        if (this.isMultiplayer && gameStateManager.isGameActive() && this.gameManager.player) {
+            // Update local player position with GameStateManager
+            const player = this.gameManager.player;
+            gameStateManager.updateLocalPlayer(
+                { x: player.body.x, y: player.body.y },
+                player.body.rotation,
+                player.isShooting || false
+            );
+            
+            // Sync remote players
+            this.syncRemotePlayers();
         }
+    }
+    
+    private syncRemotePlayers() {
+        const remotePlayers = gameStateManager.getRemotePlayers();
+        
+        remotePlayers.forEach(remotePlayer => {
+            let playerSprite = this.otherPlayers.get(remotePlayer.id);
+            
+            if (!playerSprite && remotePlayer.isAlive) {
+                // Create new remote player sprite
+                playerSprite = this.createRemotePlayer(remotePlayer);
+                this.otherPlayers.set(remotePlayer.id, playerSprite);
+            } else if (playerSprite) {
+                // Update existing remote player
+                this.updateRemotePlayer(playerSprite, remotePlayer);
+                
+                // Remove if dead
+                if (!remotePlayer.isAlive) {
+                    playerSprite.destroy();
+                    this.otherPlayers.delete(remotePlayer.id);
+                }
+            }
+        });
+    }
+    
+    private createRemotePlayer(remotePlayerData: any): Player {
+        // Create a new remote player sprite
+        const player = new Player(
+            this,
+            remotePlayerData.position.x,
+            remotePlayerData.position.y,
+            remotePlayerData.tankClass || TankClassType.VERSATILE
+        );
+        
+        // Set remote player properties
+        player.setName(remotePlayerData.username);
+        player.setAsRemotePlayer(true);
+        
+        return player;
+    }
+    
+    private updateRemotePlayer(playerSprite: Player, remotePlayerData: any) {
+        // Update position with interpolation
+        const targetX = remotePlayerData.position.x;
+        const targetY = remotePlayerData.position.y;
+        const targetRotation = remotePlayerData.rotation;
+        
+        // Simple interpolation - in production you'd want more sophisticated prediction
+        const lerpFactor = 0.1;
+        playerSprite.body.x = Phaser.Math.Linear(playerSprite.body.x, targetX, lerpFactor);
+        playerSprite.body.y = Phaser.Math.Linear(playerSprite.body.y, targetY, lerpFactor);
+        playerSprite.body.rotation = Phaser.Math.Angle.RotateTo(playerSprite.body.rotation, targetRotation, 0.1);
+        
+        // Update health bar if visible
+        playerSprite.updateHealthBar(remotePlayerData.hp, remotePlayerData.maxHp);
     }
 
     changeScene ()

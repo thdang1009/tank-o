@@ -3,6 +3,7 @@ import { AssetsAudioEnum, AssetsEnum } from '../../app/constants/assets-enum';
 import { Bullet } from './Bullet';
 import { TankStats, calculateDamage } from './TankStats';
 import { TankClassType, getTankClassDefinition, getSkillCooldown } from './TankClass';
+import { gameStateManager } from '../managers/GameStateManager';
 
 export const deltaDefault = 100;
 
@@ -32,6 +33,11 @@ export class Player {
     score: number = 0;
     isInvisible: boolean = false;
     damageReduction: number = 0; // Percentage of damage reduction (0-1)
+    
+    // Multiplayer properties
+    private isRemotePlayer: boolean = false;
+    private playerName: string = '';
+    public isShooting: boolean = false;
 
     // Stats UI elements
     statsText: Phaser.GameObjects.Text[] = [];
@@ -330,9 +336,28 @@ export class Player {
         );
 
         this.bullets.push(bullet);
+        this.isShooting = true;
+
+        // If this is a multiplayer game and not a remote player, notify the server
+        if (gameStateManager.isGameActive() && !this.isRemotePlayer) {
+            const bulletId = gameStateManager.fireBullet(
+                { x: this.barrel.x, y: this.barrel.y },
+                this.barrel.rotation,
+                300 // bullet speed
+            );
+            
+            if (bulletId) {
+                bullet.setMultiplayerInfo(bulletId, gameStateManager.getLocalPlayerId() || '');
+            }
+        }
 
         // Play sound effect
         this.scene.sound.play(AssetsAudioEnum.SHOOT);
+        
+        // Reset shooting flag after a brief moment
+        this.scene.time.delayedCall(100, () => {
+            this.isShooting = false;
+        });
     }
 
     takeDamage(amount: number) {
@@ -550,5 +575,63 @@ export class Player {
 
     addScore(points: number) {
         this.score += points;
+    }
+    
+    // Multiplayer methods
+    setAsRemotePlayer(isRemote: boolean) {
+        this.isRemotePlayer = isRemote;
+    }
+    
+    setName(name: string) {
+        this.playerName = name;
+        // Add name text above player
+        this.createNameText();
+    }
+    
+    private createNameText() {
+        if (this.playerName && this.isRemotePlayer) {
+            const nameText = this.scene.add.text(
+                this.body.x, 
+                this.body.y - 40, 
+                this.playerName, 
+                { 
+                    fontSize: '12px', 
+                    color: '#ffffff',
+                    backgroundColor: '#000000',
+                    padding: { x: 4, y: 2 }
+                }
+            );
+            nameText.setOrigin(0.5);
+            nameText.setDepth(100);
+        }
+    }
+    
+    updateHealthBar(currentHp: number, maxHp: number) {
+        // Update health bar for remote players
+        if (this.isRemotePlayer) {
+            // Simple health bar implementation
+            // You could make this more sophisticated with actual graphics
+            this.stats.hp = currentHp;
+            this.stats.maxHp = maxHp;
+        }
+    }
+    
+    destroy() {
+        // Clean up player sprite and associated objects
+        this.body.destroy();
+        this.barrel.destroy();
+        
+        // Clean up bullets
+        this.bullets.forEach(bullet => bullet.destroy());
+        this.bullets = [];
+        
+        // Clean up UI elements
+        this.statsText.forEach(text => text.destroy());
+        if (this.skillCooldownText) {
+            this.skillCooldownText.destroy();
+        }
+        if (this.skillStatusEffect) {
+            this.skillStatusEffect.destroy();
+        }
     }
 } 

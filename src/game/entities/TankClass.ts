@@ -52,6 +52,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         description: 'High HP and defense. Excels at absorbing damage and protecting allies.',
         stats: {
             hp: 1500,
+            maxHp: 1500,
             def: 25,
             atk: 40,
             spellPower: 80,
@@ -73,6 +74,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         description: 'High attack and speed. Specializes in quickly eliminating enemies.',
         stats: {
             hp: 700,
+            maxHp: 700,
             def: 8,
             atk: 80,
             spellPower: 120,
@@ -94,6 +96,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         description: 'Fast and versatile. Provides healing and buffs to teammates.',
         stats: {
             hp: 850,
+            maxHp: 850,
             def: 10,
             atk: 35,
             spellPower: 150,
@@ -115,6 +118,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         description: 'Balanced stats with stealth capabilities. Can detect hidden items.',
         stats: {
             hp: 1000,
+            maxHp: 1000,
             def: 15,
             atk: 50,
             spellPower: 100,
@@ -136,6 +140,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         description: 'Master of elemental magic with powerful spell abilities.',
         stats: {
             hp: 600,
+            maxHp: 600,
             def: 5,
             atk: 30,
             spellPower: 200,
@@ -157,6 +162,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         description: 'Fast and sneaky with enhanced reconnaissance abilities.',
         stats: {
             hp: 550,
+            maxHp: 550,
             def: 3,
             atk: 45,
             spellPower: 80,
@@ -178,6 +184,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         description: 'Heavy artillery specialist with explosive ordnance.',
         stats: {
             hp: 1200,
+            maxHp: 1200,
             def: 20,
             atk: 100,
             spellPower: 180,
@@ -199,6 +206,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         description: 'Fast reconnaissance tank with enhanced detection capabilities.',
         stats: {
             hp: 650,
+            maxHp: 650,
             def: 8,
             atk: 55,
             spellPower: 90,

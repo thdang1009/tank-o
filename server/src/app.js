@@ -6,6 +6,7 @@ const cors = require('cors');
 
 const config = require('./config/server');
 const LobbyController = require('./controllers/LobbyController');
+const GameController = require('./controllers/GameController');
 const RateLimiter = require('./middleware/rateLimiter');
 const logger = require('./utils/logger');
 
@@ -16,6 +17,7 @@ class GameServer {
         this.io = new Server(this.server, config.SOCKET_CONFIG);
         this.rateLimiter = new RateLimiter();
         this.lobbyController = new LobbyController(this.io);
+        this.gameController = new GameController(this.io, this.lobbyController.lobbyService);
         
         this.setupMiddleware();
         this.setupRoutes();
@@ -117,6 +119,9 @@ class GameServer {
             // Handle lobby events through controller
             this.lobbyController.handleConnection(socket);
             
+            // Handle in-game events through game controller
+            this.gameController.handleConnection(socket);
+            
             // Handle disconnection
             socket.on('disconnect', (reason) => {
                 logger.connectionEvent('disconnect', socket.id, { reason });
@@ -154,9 +159,10 @@ class GameServer {
                 case 'join-lobby':
                     rateLimitMiddleware = this.rateLimiter.lobbyJoin();
                     break;
-                case 'player-action':
-                case 'player-move':
-                case 'player-shoot':
+                case 'playerUpdate':
+                case 'bulletFired':
+                case 'playerHit':
+                case 'useSkill':
                     rateLimitMiddleware = this.rateLimiter.playerAction();
                     break;
                 case 'chat-message':

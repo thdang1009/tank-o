@@ -45,6 +45,7 @@ export interface BulletData {
   y: number;
   angle: number;
   speed: number;
+  position?: { x: number; y: number };
 }
 
 export interface LobbyPlayer {
@@ -232,7 +233,7 @@ export class SocketService {
       SocketEventBus.getInstance().emit('tank-class-selected', data);
     });
     
-    this.socket?.on(SocketEvents.TOGGLE_READY, (data) => {
+    this.socket?.on('update-ready-status', (data) => {
       SocketEventBus.getInstance().emit('ready-status-changed', data);
     });
     
@@ -241,6 +242,14 @@ export class SocketService {
     });
     
     // Handle game events
+    this.socket?.on('game-started', (data) => {
+      SocketEventBus.getInstance().emit('game-started', data);
+    });
+    
+    this.socket?.on('game-countdown', (data) => {
+      SocketEventBus.getInstance().emit('game-countdown', data);
+    });
+    
     this.socket?.on('playerMoved', (data) => {
       SocketEventBus.getInstance().emit('player-moved', data);
     });
@@ -251,6 +260,30 @@ export class SocketService {
     
     this.socket?.on('playerHit', (data) => {
       SocketEventBus.getInstance().emit('player-hit', data);
+    });
+    
+    this.socket?.on('playerRespawned', (data) => {
+      SocketEventBus.getInstance().emit('player-respawned', data);
+    });
+    
+    this.socket?.on('skillUsed', (data) => {
+      SocketEventBus.getInstance().emit('skill-used', data);
+    });
+    
+    this.socket?.on('gameEnded', (data) => {
+      SocketEventBus.getInstance().emit('game-ended', data);
+    });
+    
+    this.socket?.on('gameState', (data) => {
+      SocketEventBus.getInstance().emit('game-state', data);
+    });
+    
+    this.socket?.on('playerReadyStatusChanged', (data) => {
+      SocketEventBus.getInstance().emit('player-ready-status-changed', data);
+    });
+    
+    this.socket?.on('gameTransition', (data) => {
+      SocketEventBus.getInstance().emit('game-transition', data);
     });
     
     // Handle errors
@@ -366,9 +399,9 @@ export class SocketService {
   /**
    * Toggle the ready status
    */
-  public toggleReady(): void {
+  public toggleReady(isReady: boolean = true): void {
     if (this.socket) {
-      this.socket.emit(SocketEvents.TOGGLE_READY);
+      this.socket.emit('update-ready-status', { isReady });
     }
   }
   
@@ -389,10 +422,7 @@ export class SocketService {
   sendPlayerUpdate(data: GameStateUpdate) {
     if (!this.connected || !this.lobbyId) return;
     
-    this.socket?.emit('playerUpdate', {
-      lobbyId: this.lobbyId,
-      ...data
-    });
+    this.socket?.emit('playerUpdate', data);
   }
   
   // Send bullet fired event
@@ -400,21 +430,54 @@ export class SocketService {
     if (!this.connected || !this.lobbyId) return;
     
     this.socket?.emit('bulletFired', {
-      lobbyId: this.lobbyId,
-      ...data
+      bulletId: data.bulletId,
+      position: data.position,
+      angle: data.angle,
+      speed: data.speed
     });
   }
   
   // Send player hit event
-  sendPlayerHit(targetId: string, damage: number, bulletId: string) {
+  sendPlayerHit(targetId: string, damage: number, bulletId: string, position: any) {
     if (!this.connected || !this.lobbyId) return;
     
     this.socket?.emit('playerHit', {
-      lobbyId: this.lobbyId,
       targetId,
       damage,
-      bulletId
+      bulletId,
+      position
     });
+  }
+  
+  // Send skill usage
+  sendUseSkill(skillType: string, targetPosition?: any) {
+    if (!this.connected || !this.lobbyId) return;
+    
+    this.socket?.emit('useSkill', {
+      skillType,
+      targetPosition
+    });
+  }
+  
+  // Request respawn
+  sendRespawnRequest() {
+    if (!this.connected || !this.lobbyId) return;
+    
+    this.socket?.emit('requestRespawn');
+  }
+  
+  // Request current game state
+  requestGameState() {
+    if (!this.connected || !this.lobbyId) return;
+    
+    this.socket?.emit('requestGameState');
+  }
+  
+  // Send player ready status
+  sendPlayerReady(ready: boolean = true) {
+    if (!this.connected || !this.lobbyId) return;
+    
+    this.socket?.emit('playerReady', { ready });
   }
   
   // -------------------------

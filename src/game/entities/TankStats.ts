@@ -1,6 +1,7 @@
 export interface TankStats {
     // Basic stats
     hp: number;      // Health points
+    maxHp: number;   // Maximum health points
     def: number;     // Defense, reduces damage taken
     atk: number;     // Attack power, increases bullet damage
     spellPower: number; // Special ability power
@@ -14,6 +15,7 @@ export interface TankStats {
 // Default stats for player tank
 export const defaultPlayerStats: TankStats = {
     hp: 1000,
+    maxHp: 1000,
     def: 10,
     atk: 50,
     spellPower: 100,
@@ -26,6 +28,7 @@ export const defaultPlayerStats: TankStats = {
 export const defaultEnemyStats = {
     easy: {
         hp: 50,
+        maxHp: 50,
         def: 5,
         atk: 10,
         spellPower: 0,
@@ -35,6 +38,7 @@ export const defaultEnemyStats = {
     },
     medium: {
         hp: 100,
+        maxHp: 100,
         def: 10,
         atk: 20,
         spellPower: 30,
@@ -44,6 +48,7 @@ export const defaultEnemyStats = {
     },
     hard: {
         hp: 150,
+        maxHp: 150,
         def: 15,
         atk: 50,
         spellPower: 75,
