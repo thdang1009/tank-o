@@ -190,6 +190,12 @@ export enum AssetsEnum {
     WIRE_CROOKED = 'wireCrooked',
     WIRE_STRAIGHT = 'wireStraight',
     SHIELD_EFFECT = 'shield-effect',
+    // New assets based on user additions
+    ICE_EFFECT_SPRITE = 'ice_effect_sprite',
+    FROST_NOVA_EXPLOSION = 'frost_nova_explosion',
+    AIM_TARGET = 'aim',
+    FIREBALL_PROJECTILE = 'fireball_projectile',
+    RADAR_SWEEP = 'radar',
 }
 
 export enum AssetsAudioEnum {
@@ -206,4 +212,9 @@ export enum AssetsAudioEnum {
     ABSORB = 'absorb.wav',
     SLEEP = 'sleep.wav',
     DISAPPEAR = 'disappear.wav',
+    // New audio assets
+    ICE_FREEZE = 'ice.wav',
+    STEALTH_ACTIVATE = 'stealth_activate.wav',
+    RADAR_PING = 'radar_ping.wav',
+    ARTILLERY_WHISTLE = 'artillery_whistle.wav',
 }

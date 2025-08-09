@@ -52,8 +52,8 @@ export class SkillSystem {
         if (skill) {
             this.activeSkills.set(playerId, skill);
             
-            // Update last skill used time
-            player.lastSkillUsed = Date.now();
+            // Update last skill used time (backward compatibility)
+            player.lastSkill1Used = Date.now();
             
             // Notify server in multiplayer
             if (gameStateManager.isGameActive()) {
@@ -586,8 +586,8 @@ export class SkillSystem {
             }
         });
         
-        // Create ice particles
-        const iceParticles = this.scene.add.particles(0, 0, AssetsEnum.BULLET_BLUE_1, {
+        // Create ice particles using new asset if available
+        const iceParticles = this.scene.add.particles(0, 0, AssetsEnum.ICE_EFFECT_SPRITE || AssetsEnum.BULLET_BLUE_1, {
             scale: { start: 0.3, end: 0 },
             alpha: { start: 0.8, end: 0 },
             tint: 0x88ddff,
@@ -685,7 +685,7 @@ export class SkillSystem {
     // Helper methods
     private isOnCooldown(player: Player, skillType: TankClassType): boolean {
         const cooldown = this.getSkillCooldown(skillType);
-        return Date.now() < player.lastSkillUsed + cooldown;
+        return Date.now() < player.lastSkill1Used + cooldown;
     }
     
     private getSkillCooldown(skillType: TankClassType): number {
@@ -766,7 +766,7 @@ export class SkillSystem {
     // Get remaining cooldown time for a player's skill
     getSkillCooldownRemaining(player: Player, skillType: TankClassType): number {
         const cooldown = this.getSkillCooldown(skillType);
-        const elapsed = Date.now() - player.lastSkillUsed;
+        const elapsed = Date.now() - player.lastSkill1Used;
         return Math.max(0, cooldown - elapsed);
     }
     

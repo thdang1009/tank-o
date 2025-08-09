@@ -95,16 +95,28 @@ export class ClassSelection extends Scene {
 
     createClassButtons() {
         const classTypes = Object.values(TankClassType);
-        const buttonWidth = 200;
-        const buttonHeight = 400; // Increased height for skill info
-        const buttonSpacing = 20; // Reduced spacing to fit more tanks
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
         
-        // Calculate layout - use multiple rows if needed
-        const tanksPerRow = Math.min(5, classTypes.length);
+        // Make responsive to screen size
+        const buttonWidth = Math.min(180, (screenWidth - 100) / 5); // Fit at least 5 per row
+        const buttonHeight = Math.min(350, (screenHeight - 200) / 2); // Fit 2 rows max
+        const buttonSpacing = 15;
+        
+        // Calculate layout - fit tanks to screen
+        const maxTanksPerRow = Math.floor((screenWidth - 60) / (buttonWidth + buttonSpacing));
+        const tanksPerRow = Math.min(maxTanksPerRow, classTypes.length);
         const rows = Math.ceil(classTypes.length / tanksPerRow);
+        
+        // Center the buttons
         const totalWidth = (buttonWidth * tanksPerRow) + (buttonSpacing * (tanksPerRow - 1));
-        const startX = (this.cameras.main.width - totalWidth) / 2;
-        const startY = 140;
+        const startX = (screenWidth - totalWidth) / 2;
+        const startY = 120;
+        
+        console.log('Tank selection layout:', { 
+            screenWidth, screenHeight, buttonWidth, buttonHeight, 
+            tanksPerRow, rows, totalWidth 
+        });
 
         classTypes.forEach((classType, index) => {
             const classDefinition = TankClasses[classType];
@@ -129,8 +141,22 @@ export class ClassSelection extends Scene {
 
             // Tank preview
             try {
-                const tankBody = this.add.image(0, -80, bodyAssetName).setScale(0.8);
-                const tankBarrel = this.add.image(2.5, -80, barrelAssetName).setScale(0.8);
+                let tankScale = 0.8;
+                
+                // Apply special scaling for certain tank types
+                if (classType === TankClassType.SPY) {
+                    tankScale = 0.7; // Make spy tank smaller in preview too
+                }
+                
+                const tankBody = this.add.image(0, -80, bodyAssetName).setScale(tankScale);
+                const tankBarrel = this.add.image(2.5, -80, barrelAssetName).setScale(tankScale);
+                
+                // Apply special tinting for certain tank types
+                if (classType === TankClassType.ICE_TANK) {
+                    tankBody.setTint(0xffffff); // White tint for ice theme
+                    tankBarrel.setTint(0xffffff);
+                }
+                
                 container.add(tankBody);
                 container.add(tankBarrel);
             } catch (e) {
@@ -140,9 +166,14 @@ export class ClassSelection extends Scene {
                 container.add(tankPlaceholder);
             }
 
+            // Responsive font sizes
+            const nameFontSize = Math.max(16, Math.min(20, buttonWidth / 10));
+            const descFontSize = Math.max(10, Math.min(12, buttonWidth / 15));
+            const skillFontSize = Math.max(12, Math.min(14, buttonWidth / 13));
+            
             // Class name
             const nameText = this.add.text(0, -20, classDefinition.name, {
-                fontSize: '24px',
+                fontSize: `${nameFontSize}px`,
                 fontStyle: 'bold',
                 color: '#ffffff',
                 align: 'center'
@@ -151,29 +182,61 @@ export class ClassSelection extends Scene {
 
             // Description
             const descText = this.add.text(0, 20, classDefinition.description, {
-                fontSize: '14px',
+                fontSize: `${descFontSize}px`,
                 color: '#cccccc',
                 align: 'center',
                 wordWrap: { width: buttonWidth - 20 }
             }).setOrigin(0.5, 0);
             container.add(descText);
 
-            // Skill name and description
-            const skillText = this.add.text(0, 100, `Skill: ${classDefinition.skillName}`, {
-                fontSize: '16px',
-                fontStyle: 'bold',
-                color: '#ffcc00',
-                align: 'center'
-            }).setOrigin(0.5, 0);
-            container.add(skillText);
-
-            const skillDescText = this.add.text(0, 120, classDefinition.skillDescription, {
-                fontSize: '12px',
-                color: '#cccccc',
-                align: 'center',
-                wordWrap: { width: buttonWidth - 20 }
-            }).setOrigin(0.5, 0);
-            container.add(skillDescText);
+            // Skills info - show all three skills
+            const skillTextSize = Math.max(10, skillFontSize - 2);
+            const yStart = 80;
+            
+            // Skill 1 (Q)
+            if (classDefinition.skill1Name || classDefinition.skillName) {
+                const skill1Text = this.add.text(0, yStart, `[Q] ${classDefinition.skill1Name || classDefinition.skillName}`, {
+                    fontSize: `${skillTextSize}px`,
+                    fontStyle: 'bold',
+                    color: '#ffcc00',
+                    align: 'center'
+                }).setOrigin(0.5, 0);
+                container.add(skill1Text);
+            }
+            
+            // Skill 2 (E)
+            if (classDefinition.skill2Name) {
+                const skill2Text = this.add.text(0, yStart + 20, `[E] ${classDefinition.skill2Name}`, {
+                    fontSize: `${skillTextSize}px`,
+                    fontStyle: 'bold',
+                    color: '#66ff66',
+                    align: 'center'
+                }).setOrigin(0.5, 0);
+                container.add(skill2Text);
+            }
+            
+            // Ultimate (R)
+            if (classDefinition.ultimateName) {
+                const ultimateText = this.add.text(0, yStart + 40, `[R] ${classDefinition.ultimateName}`, {
+                    fontSize: `${skillTextSize}px`,
+                    fontStyle: 'bold',
+                    color: '#ff6666',
+                    align: 'center'
+                }).setOrigin(0.5, 0);
+                container.add(ultimateText);
+            }
+            
+            // Show primary skill description
+            const primarySkillDesc = classDefinition.skill1Description || classDefinition.skillDescription;
+            if (primarySkillDesc) {
+                const skillDescText = this.add.text(0, yStart + 65, primarySkillDesc, {
+                    fontSize: `${Math.max(8, skillTextSize - 2)}px`,
+                    color: '#cccccc',
+                    align: 'center',
+                    wordWrap: { width: buttonWidth - 20 }
+                }).setOrigin(0.5, 0);
+                container.add(skillDescText);
+            }
 
             // Make button interactive
             background.setInteractive({ useHandCursor: true })

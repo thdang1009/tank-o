@@ -24,8 +24,12 @@ export class Player {
 
     // Additional properties
     lastFired: number = 0;
-    lastSkillUsed: number = 0;
-    skillCooldown: number;
+    lastSkill1Used: number = 0;
+    lastSkill2Used: number = 0;
+    lastUltimateUsed: number = 0;
+    skill1Cooldown: number;
+    skill2Cooldown: number;
+    ultimateCooldown: number;
     isSkillActive: boolean = false;
     skillActiveTime: number = 0;
     skillDuration: number = 0;
@@ -60,8 +64,10 @@ export class Player {
         // Initialize stats from class definition
         this.stats = { ...classDefinition.stats };
 
-        // Set skill cooldown
-        this.skillCooldown = getSkillCooldown(tankClass);
+        // Set skill cooldowns
+        this.skill1Cooldown = getSkillCooldown(tankClass, 'skill1');
+        this.skill2Cooldown = getSkillCooldown(tankClass, 'skill2');
+        this.ultimateCooldown = getSkillCooldown(tankClass, 'ultimate');
 
         // Create tank body (use class-specific assets)
         const bodyAsset = classDefinition.tankBodyAsset
@@ -72,6 +78,13 @@ export class Player {
         this.body = playerSprite;
         this.body.setCollideWorldBounds(true);
         this.body.setDepth(1);
+        
+        // Apply special tinting for certain tank classes
+        if (this.tankClass === TankClassType.ICE_TANK) {
+            this.body.setTint(0xffffff); // White tint for ice theme
+        } else if (this.tankClass === TankClassType.SPY) {
+            this.body.setScale(0.9); // Make spy tank slightly smaller
+        }
         
         // Ensure physics body is properly configured for world bounds collision
         if (this.body.body) {
@@ -111,6 +124,13 @@ export class Player {
         this.barrel = scene.add.sprite(x, y, barrelAsset);
         this.barrel.setOrigin(0, 0.5); // Set origin point to bottom center of barrel
         this.barrel.setDepth(2);
+        
+        // Apply special tinting to barrel to match body
+        if (this.tankClass === TankClassType.ICE_TANK) {
+            this.barrel.setTint(0xffffff); // White tint for ice theme
+        } else if (this.tankClass === TankClassType.SPY) {
+            this.barrel.setScale(0.9); // Make spy barrel slightly smaller
+        }
 
         // Set up input
         this.setupInput(scene);
@@ -131,9 +151,17 @@ export class Player {
                 this.fire();
             });
 
-            // Add Q key for special ability
+            // Add skill keys
             scene.input.keyboard.on('keydown-Q', () => {
-                this.useSkill();
+                this.useSkill('skill1');
+            });
+            
+            scene.input.keyboard.on('keydown-E', () => {
+                this.useSkill('skill2');
+            });
+            
+            scene.input.keyboard.on('keydown-R', () => {
+                this.useSkill('ultimate');
             });
 
             // WASD movement
@@ -210,14 +238,16 @@ export class Player {
         this.statsText.push(createStatText('SPELL', this.stats.spellPower, 70));
         this.statsText.push(createStatText('SPEED', this.stats.speed, 50));
 
-        // Add skill cooldown text with more information
+        // Add skill cooldown text with more information for all skills
         const classDefinition = getTankClassDefinition(this.tankClass);
+        
+        // Skill 1 (Q)
         this.skillCooldownText = this.scene.add.text(
-            30,
-            this.scene.cameras.main.height - 30,
-            `SKILL [Q]: ${classDefinition.skillName} - Ready`,
+            300,
+            this.scene.cameras.main.height - 130,
+            `[Q] ${classDefinition.skill1Name || classDefinition.skillName} - Ready`,
             {
-                fontSize: '16px',
+                fontSize: '14px',
                 color: '#00ff00',
                 backgroundColor: '#000000',
                 padding: { x: 4, y: 2 }
@@ -226,30 +256,116 @@ export class Player {
         this.skillCooldownText.setScrollFactor(0);
         this.skillCooldownText.setDepth(101);
         
-        // Add skill description box (initially hidden)
-        const skillDescText = this.scene.add.text(
-            30,
-            this.scene.cameras.main.height - 70,
-            classDefinition.skillDescription,
+        // Skill 2 (E)
+        const skill2Text = this.scene.add.text(
+            300,
+            this.scene.cameras.main.height - 110,
+            `[E] ${classDefinition.skill2Name} - Ready`,
             {
                 fontSize: '14px',
+                color: '#00ff00',
+                backgroundColor: '#000000',
+                padding: { x: 4, y: 2 }
+            }
+        );
+        skill2Text.setScrollFactor(0);
+        skill2Text.setDepth(101);
+        this.statsText.push(skill2Text);
+        
+        // Ultimate (R)
+        const ultimateText = this.scene.add.text(
+            300,
+            this.scene.cameras.main.height - 90,
+            `[R] ${classDefinition.ultimateName} - Ready`,
+            {
+                fontSize: '14px',
+                color: '#00ff00',
+                backgroundColor: '#000000',
+                padding: { x: 4, y: 2 }
+            }
+        );
+        ultimateText.setScrollFactor(0);
+        ultimateText.setDepth(101);
+        this.statsText.push(ultimateText);
+        
+        // Add skill description boxes (initially hidden)
+        const skill1DescText = this.scene.add.text(
+            300,
+            this.scene.cameras.main.height - 70,
+            classDefinition.skill1Description || classDefinition.skillDescription || '',
+            {
+                fontSize: '12px',
                 color: '#ffffff',
                 backgroundColor: '#000000',
                 padding: { x: 6, y: 4 },
-                wordWrap: { width: 300 }
+                wordWrap: { width: 250 }
             }
         );
-        skillDescText.setScrollFactor(0);
-        skillDescText.setDepth(101);
-        skillDescText.setVisible(false);
+        skill1DescText.setScrollFactor(0);
+        skill1DescText.setDepth(101);
+        skill1DescText.setVisible(false);
         
-        // Make skill text interactive to show description on hover
+        const skill2DescText = this.scene.add.text(
+            300,
+            this.scene.cameras.main.height - 70,
+            classDefinition.skill2Description || '',
+            {
+                fontSize: '12px',
+                color: '#ffffff',
+                backgroundColor: '#000000',
+                padding: { x: 6, y: 4 },
+                wordWrap: { width: 250 }
+            }
+        );
+        skill2DescText.setScrollFactor(0);
+        skill2DescText.setDepth(101);
+        skill2DescText.setVisible(false);
+        
+        const ultimateDescText = this.scene.add.text(
+            300,
+            this.scene.cameras.main.height - 70,
+            classDefinition.ultimateDescription || '',
+            {
+                fontSize: '12px',
+                color: '#ffffff',
+                backgroundColor: '#000000',
+                padding: { x: 6, y: 4 },
+                wordWrap: { width: 250 }
+            }
+        );
+        ultimateDescText.setScrollFactor(0);
+        ultimateDescText.setDepth(101);
+        ultimateDescText.setVisible(false);
+        
+        // Make skill texts interactive to show descriptions on hover
         this.skillCooldownText.setInteractive({ useHandCursor: true })
             .on('pointerover', () => {
-                skillDescText.setVisible(true);
+                skill1DescText.setVisible(true);
+                skill2DescText.setVisible(false);
+                ultimateDescText.setVisible(false);
             })
             .on('pointerout', () => {
-                skillDescText.setVisible(false);
+                skill1DescText.setVisible(false);
+            });
+            
+        skill2Text.setInteractive({ useHandCursor: true })
+            .on('pointerover', () => {
+                skill1DescText.setVisible(false);
+                skill2DescText.setVisible(true);
+                ultimateDescText.setVisible(false);
+            })
+            .on('pointerout', () => {
+                skill2DescText.setVisible(false);
+            });
+            
+        ultimateText.setInteractive({ useHandCursor: true })
+            .on('pointerover', () => {
+                skill1DescText.setVisible(false);
+                skill2DescText.setVisible(false);
+                ultimateDescText.setVisible(true);
+            })
+            .on('pointerout', () => {
+                ultimateDescText.setVisible(false);
             });
 
         // Show class name at top of screen
@@ -278,19 +394,48 @@ export class Player {
         this.statsText[3].setText(`SPELL: ${this.stats.spellPower}`);
         this.statsText[4].setText(`SPEED: ${this.stats.speed}`);
 
-        // Update skill status with skill name
+        // Update skill status for all skills
         const classDefinition = getTankClassDefinition(this.tankClass);
+        const now = Date.now();
+        
+        // Update Skill 1 (Q)
         if (this.isSkillActive) {
-            const remainingTime = Math.ceil((this.skillDuration - (Date.now() - this.skillActiveTime)) / 1000);
-            this.skillCooldownText.setText(`SKILL [Q]: ${classDefinition.skillName} - Active (${remainingTime}s)`);
+            const remainingTime = Math.ceil((this.skillDuration - (now - this.skillActiveTime)) / 1000);
+            this.skillCooldownText.setText(`[Q] ${classDefinition.skill1Name || classDefinition.skillName} - Active (${remainingTime}s)`);
             this.skillCooldownText.setColor('#ffff00');
-        } else if (Date.now() < this.lastSkillUsed + this.skillCooldown) {
-            const remainingTime = Math.ceil((this.skillCooldown - (Date.now() - this.lastSkillUsed)) / 1000);
-            this.skillCooldownText.setText(`SKILL [Q]: ${classDefinition.skillName} - Cooldown (${remainingTime}s)`);
+        } else if (now < this.lastSkill1Used + this.skill1Cooldown) {
+            const remainingTime = Math.ceil((this.skill1Cooldown - (now - this.lastSkill1Used)) / 1000);
+            this.skillCooldownText.setText(`[Q] ${classDefinition.skill1Name || classDefinition.skillName} - Cooldown (${remainingTime}s)`);
             this.skillCooldownText.setColor('#ff0000');
         } else {
-            this.skillCooldownText.setText(`SKILL [Q]: ${classDefinition.skillName} - Ready`);
+            this.skillCooldownText.setText(`[Q] ${classDefinition.skill1Name || classDefinition.skillName} - Ready`);
             this.skillCooldownText.setColor('#00ff00');
+        }
+        
+        // Update Skill 2 (E) - assuming it's the 6th element in statsText (index 5)
+        if (this.statsText.length > 5) {
+            const skill2Text = this.statsText[5];
+            if (now < this.lastSkill2Used + this.skill2Cooldown) {
+                const remainingTime = Math.ceil((this.skill2Cooldown - (now - this.lastSkill2Used)) / 1000);
+                skill2Text.setText(`[E] ${classDefinition.skill2Name} - Cooldown (${remainingTime}s)`);
+                skill2Text.setColor('#ff0000');
+            } else {
+                skill2Text.setText(`[E] ${classDefinition.skill2Name} - Ready`);
+                skill2Text.setColor('#00ff00');
+            }
+        }
+        
+        // Update Ultimate (R) - assuming it's the 7th element in statsText (index 6)
+        if (this.statsText.length > 6) {
+            const ultimateText = this.statsText[6];
+            if (now < this.lastUltimateUsed + this.ultimateCooldown) {
+                const remainingTime = Math.ceil((this.ultimateCooldown - (now - this.lastUltimateUsed)) / 1000);
+                ultimateText.setText(`[R] ${classDefinition.ultimateName} - Cooldown (${remainingTime}s)`);
+                ultimateText.setColor('#ff0000');
+            } else {
+                ultimateText.setText(`[R] ${classDefinition.ultimateName} - Ready`);
+                ultimateText.setColor('#00ff00');
+            }
         }
     }
 
@@ -481,11 +626,49 @@ export class Player {
         });
     }
 
-    useSkill(targetPosition?: { x: number, y: number }) {
+    useSkill(skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }) {
         if (!this.skillSystem) {
             return false;
         }
         
+        // Check cooldowns based on skill slot
+        const now = Date.now();
+        let lastUsed: number, cooldown: number;
+        
+        switch (skillSlot) {
+            case 'skill1':
+                lastUsed = this.lastSkill1Used;
+                cooldown = this.skill1Cooldown;
+                break;
+            case 'skill2':
+                lastUsed = this.lastSkill2Used;
+                cooldown = this.skill2Cooldown;
+                break;
+            case 'ultimate':
+                lastUsed = this.lastUltimateUsed;
+                cooldown = this.ultimateCooldown;
+                break;
+        }
+        
+        if (now < lastUsed + cooldown) {
+            console.log(`${skillSlot} on cooldown`);
+            return false;
+        }
+        
+        // Update last used time
+        switch (skillSlot) {
+            case 'skill1':
+                this.lastSkill1Used = now;
+                break;
+            case 'skill2':
+                this.lastSkill2Used = now;
+                break;
+            case 'ultimate':
+                this.lastUltimateUsed = now;
+                break;
+        }
+        
+        // For now, use the existing skill system (will expand later)
         return this.skillSystem.useSkill(this, this.tankClass, targetPosition);
     }
 
