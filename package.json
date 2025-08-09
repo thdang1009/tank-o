@@ -19,7 +19,7 @@
         "tanks"
     ],
     "author": "thdang1009@gmail.com",
-    "license": "CC BY-NC 4.0"
+    "license": "CC BY-NC 4.0",
     "devDependencies": {
         "@angular-devkit/build-angular": "^17.2.2",
         "@angular/cli": "^17.2.2",
