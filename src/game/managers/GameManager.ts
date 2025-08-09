@@ -86,11 +86,16 @@ export class GameManager {
         // Create map
         this.mapManager = new MapManager(scene, this.config.mapType);
 
-        // Initialize physics system
+        // Initialize physics system with proper world bounds
+        const worldWidth = scene.sys.canvas.width;
+        const worldHeight = scene.sys.canvas.height;
+        
+        console.log('GameManager initializing PhysicsSystem with bounds:', { width: worldWidth, height: worldHeight });
+        
         this.physicsSystem = new PhysicsSystem(scene, {
             world: {
-                width: scene.sys.canvas.width,
-                height: scene.sys.canvas.height,
+                width: worldWidth,
+                height: worldHeight,
                 gravity: { x: 0, y: 0 }
             },
             enableDebug: false,
@@ -103,6 +108,10 @@ export class GameManager {
                 { name: 'explosions', collidesWith: ['players', 'enemies', 'walls'] }
             ]
         });
+        
+        // Ensure both physics systems have the same world bounds
+        console.log('Main physics world bounds:', scene.physics.world.bounds);
+        console.log('Custom physics system bounds:', this.physicsSystem);
         
         // Initialize skill system
         this.skillSystem = new SkillSystem(scene);
@@ -331,13 +340,13 @@ export class GameManager {
     }
 
     handleBulletEnemyCollision(bullet: any, enemy: Enemy, source: string) {
+        console.log('Player bullet hit enemy!', { damage: bullet.damage, enemyHP: enemy.stats.hp, source });
+        
         // Apply damage to enemy
         enemy.takeDamage(bullet.damage);
 
-
         // Destroy the bullet
         bullet.destroy();
-
 
         // Check if enemy is dead
         if (!enemy.isAlive) {
@@ -350,6 +359,8 @@ export class GameManager {
     }
 
     handleBulletPlayerCollision(bullet: any) {
+        console.log('Enemy bullet hit player!', { damage: bullet.damage, playerHP: this.player.stats.hp });
+        
         // Apply damage to player
         this.player.takeDamage(bullet.damage);
 
@@ -454,8 +465,8 @@ export class GameManager {
                 this.setupNewBulletCollisions(enemy);
             }
             
-            // Add new bullets to physics system
-            this.addNewBulletsToPhysics();
+            // Temporarily disable custom physics system for bullets to avoid conflicts
+            // this.addNewBulletsToPhysics();
         }
         
         // Update game mode if active

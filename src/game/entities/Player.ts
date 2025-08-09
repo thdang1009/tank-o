@@ -72,6 +72,40 @@ export class Player {
         this.body = playerSprite;
         this.body.setCollideWorldBounds(true);
         this.body.setDepth(1);
+        
+        // Ensure physics body is properly configured for world bounds collision
+        if (this.body.body) {
+            const physicsBody = this.body.body as Phaser.Physics.Arcade.Body;
+            
+            // Force enable world bounds collision with strong enforcement
+            physicsBody.setCollideWorldBounds(true);
+            physicsBody.setBounce(0.3, 0.3); // Stronger bounce to ensure collision is noticeable
+            
+            // Make sure the body size is correct for collision detection
+            const bodyWidth = this.body.width * 0.7; // Slightly smaller for better collision
+            const bodyHeight = this.body.height * 0.7;
+            physicsBody.setSize(bodyWidth, bodyHeight);
+            
+            // Set up world bounds collision callback
+            physicsBody.onWorldBounds = true;
+            
+            // Listen for world bounds events on this specific body
+            scene.physics.world.on('worldbounds', (event: any, body: any) => {
+                if (body === physicsBody) {
+                    console.log('Player hit world bounds!', { 
+                        playerPos: { x: body.x, y: body.y }, 
+                        bounds: scene.physics.world.bounds,
+                        velocity: { x: body.velocity.x, y: body.velocity.y }
+                    });
+                }
+            });
+            
+            console.log('Player physics body configured:');
+            console.log('- Bounds collision:', physicsBody.collideWorldBounds);
+            console.log('- Body size:', { width: bodyWidth, height: bodyHeight });
+            console.log('- World bounds:', scene.physics.world.bounds);
+            console.log('- Player position:', { x: physicsBody.x, y: physicsBody.y });
+        }
 
         // Create tank turret/barrel
         this.barrel = scene.add.sprite(x, y, barrelAsset);
@@ -176,34 +210,64 @@ export class Player {
         this.statsText.push(createStatText('SPELL', this.stats.spellPower, 70));
         this.statsText.push(createStatText('SPEED', this.stats.speed, 50));
 
-        // Add skill cooldown text
+        // Add skill cooldown text with more information
+        const classDefinition = getTankClassDefinition(this.tankClass);
         this.skillCooldownText = this.scene.add.text(
             30,
             this.scene.cameras.main.height - 30,
-            `SKILL: Ready`,
+            `SKILL [Q]: ${classDefinition.skillName} - Ready`,
             {
                 fontSize: '16px',
-                color: '#00ff00'
+                color: '#00ff00',
+                backgroundColor: '#000000',
+                padding: { x: 4, y: 2 }
             }
         );
         this.skillCooldownText.setScrollFactor(0);
         this.skillCooldownText.setDepth(101);
+        
+        // Add skill description box (initially hidden)
+        const skillDescText = this.scene.add.text(
+            30,
+            this.scene.cameras.main.height - 70,
+            classDefinition.skillDescription,
+            {
+                fontSize: '14px',
+                color: '#ffffff',
+                backgroundColor: '#000000',
+                padding: { x: 6, y: 4 },
+                wordWrap: { width: 300 }
+            }
+        );
+        skillDescText.setScrollFactor(0);
+        skillDescText.setDepth(101);
+        skillDescText.setVisible(false);
+        
+        // Make skill text interactive to show description on hover
+        this.skillCooldownText.setInteractive({ useHandCursor: true })
+            .on('pointerover', () => {
+                skillDescText.setVisible(true);
+            })
+            .on('pointerout', () => {
+                skillDescText.setVisible(false);
+            });
 
-        // // Show class name and skill name
-        // const classDefinition = getTankClassDefinition(this.tankClass);
-        // const classInfoText = this.scene.add.text(
-        //     30,
-        //     20,
-        //     `Class: ${classDefinition.name}\nSkill: ${classDefinition.skillName}`,
-        //     {
-        //         fontSize: '16px',
-        //         color: '#ffffff',
-        //         stroke: '#000000',
-        //         strokeThickness: 3
-        //     }
-        // );
-        // classInfoText.setScrollFactor(0);
-        // classInfoText.setDepth(101);
+        // Show class name at top of screen
+        const classInfoText = this.scene.add.text(
+            30,
+            20,
+            `Tank: ${classDefinition.name}`,
+            {
+                fontSize: '20px',
+                color: '#ffffff',
+                backgroundColor: '#000000',
+                padding: { x: 6, y: 4 },
+                stroke: '#000000',
+                strokeThickness: 3
+            }
+        );
+        classInfoText.setScrollFactor(0);
+        classInfoText.setDepth(101);
     }
 
     updateStatsDisplay() {
@@ -214,17 +278,18 @@ export class Player {
         this.statsText[3].setText(`SPELL: ${this.stats.spellPower}`);
         this.statsText[4].setText(`SPEED: ${this.stats.speed}`);
 
-        // Update skill status
+        // Update skill status with skill name
+        const classDefinition = getTankClassDefinition(this.tankClass);
         if (this.isSkillActive) {
             const remainingTime = Math.ceil((this.skillDuration - (Date.now() - this.skillActiveTime)) / 1000);
-            this.skillCooldownText.setText(`SKILL: Active (${remainingTime}s)`);
+            this.skillCooldownText.setText(`SKILL [Q]: ${classDefinition.skillName} - Active (${remainingTime}s)`);
             this.skillCooldownText.setColor('#ffff00');
         } else if (Date.now() < this.lastSkillUsed + this.skillCooldown) {
             const remainingTime = Math.ceil((this.skillCooldown - (Date.now() - this.lastSkillUsed)) / 1000);
-            this.skillCooldownText.setText(`SKILL: Cooldown (${remainingTime}s)`);
+            this.skillCooldownText.setText(`SKILL [Q]: ${classDefinition.skillName} - Cooldown (${remainingTime}s)`);
             this.skillCooldownText.setColor('#ff0000');
         } else {
-            this.skillCooldownText.setText(`SKILL: Ready (Press Q)`);
+            this.skillCooldownText.setText(`SKILL [Q]: ${classDefinition.skillName} - Ready`);
             this.skillCooldownText.setColor('#00ff00');
         }
     }
@@ -319,6 +384,9 @@ export class Player {
         if (this.skillSystem) {
             this.skillSystem.update(delta);
         }
+        
+        // Manual world bounds check as backup
+        this.checkWorldBounds();
 
         // Apply visual effect for stealth if active
         if (this.isInvisible) {
@@ -338,11 +406,18 @@ export class Player {
         const bulletAsset = this.isRapidFire ? classDefinition.bulletAsset.replace('1', '2') : classDefinition.bulletAsset;
 
         // Create a new bullet from the barrel position
+        // Get barrel tip position for more accurate bullet spawn
+        const barrelLength = 40;
+        const bulletStartX = this.barrel.x + Math.cos(this.barrel.rotation) * barrelLength;
+        const bulletStartY = this.barrel.y + Math.sin(this.barrel.rotation) * barrelLength;
+        
+        console.log('Firing bullet - barrel rotation (radians):', this.barrel.rotation, 'degrees:', this.barrel.rotation * 180 / Math.PI);
+        
         const bullet = new Bullet(
             this.scene,
-            this.barrel.x,
-            this.barrel.y,
-            this.barrel.rotation * 180 / Math.PI,
+            bulletStartX,
+            bulletStartY,
+            this.barrel.rotation * 180 / Math.PI, // Convert radians to degrees for Bullet constructor
             this.stats.atk,  // Use attack stat for bullet damage
             bulletAsset
         );
@@ -540,6 +615,53 @@ export class Player {
         }
         if (this.skillStatusEffect) {
             this.skillStatusEffect.destroy();
+        }
+    }
+    
+    // Manual world bounds checking method
+    public checkWorldBounds() {
+        if (!this.body || !this.body.body) return;
+        
+        const physicsBody = this.body.body as Phaser.Physics.Arcade.Body;
+        const worldBounds = this.scene.physics.world.bounds;
+        
+        let hitBounds = false;
+        let newX = physicsBody.x;
+        let newY = physicsBody.y;
+        
+        // Check left boundary
+        if (physicsBody.x < worldBounds.x) {
+            newX = worldBounds.x;
+            hitBounds = true;
+        }
+        
+        // Check right boundary
+        if (physicsBody.x + physicsBody.width > worldBounds.x + worldBounds.width) {
+            newX = worldBounds.x + worldBounds.width - physicsBody.width;
+            hitBounds = true;
+        }
+        
+        // Check top boundary
+        if (physicsBody.y < worldBounds.y) {
+            newY = worldBounds.y;
+            hitBounds = true;
+        }
+        
+        // Check bottom boundary
+        if (physicsBody.y + physicsBody.height > worldBounds.y + worldBounds.height) {
+            newY = worldBounds.y + worldBounds.height - physicsBody.height;
+            hitBounds = true;
+        }
+        
+        // If hit bounds, correct position and add bounce effect
+        if (hitBounds) {
+            console.log('Manual bounds check - player hit boundary, correcting position from', 
+                { x: physicsBody.x, y: physicsBody.y }, 'to', { x: newX, y: newY });
+            
+            this.body.setPosition(newX + physicsBody.width/2, newY + physicsBody.height/2);
+            
+            // Apply bounce effect by reversing velocity
+            physicsBody.setVelocity(physicsBody.velocity.x * -0.3, physicsBody.velocity.y * -0.3);
         }
     }
 } 

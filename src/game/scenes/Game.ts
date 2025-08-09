@@ -101,6 +101,39 @@ export class Game extends Scene
             return;
         }
         
+        // Set up world bounds for collision detection BEFORE creating GameManager
+        const gameWidth = this.cameras.main.width;
+        const gameHeight = this.cameras.main.height;
+        
+        // Use a slightly smaller boundary to ensure collision detection works
+        const boundaryMargin = 10;
+        this.physics.world.setBounds(
+            boundaryMargin, 
+            boundaryMargin, 
+            gameWidth - (boundaryMargin * 2), 
+            gameHeight - (boundaryMargin * 2)
+        );
+        
+        // Enable world bounds collision detection on all sides
+        this.physics.world.checkCollision.up = true;
+        this.physics.world.checkCollision.down = true;
+        this.physics.world.checkCollision.left = true;
+        this.physics.world.checkCollision.right = true;
+        
+        // Also enable collision callbacks
+        this.physics.world.on('worldbounds', (event: any) => {
+            console.log('World bounds collision detected:', event);
+        });
+        
+        console.log('World bounds set with margin:', { 
+            x: boundaryMargin, 
+            y: boundaryMargin, 
+            width: gameWidth - (boundaryMargin * 2), 
+            height: gameHeight - (boundaryMargin * 2) 
+        });
+        console.log('Camera dimensions:', { width: this.cameras.main.width, height: this.cameras.main.height });
+        console.log('Canvas dimensions:', { width: this.sys.canvas.width, height: this.sys.canvas.height });
+        
         // Adjust game configuration based on game mode
         let config = {
             ...gameDefaultConfig,

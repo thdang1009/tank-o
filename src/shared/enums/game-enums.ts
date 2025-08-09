@@ -19,7 +19,8 @@ export enum TankClassType {
   MAGE = 'mage',
   SPY = 'spy',
   DEMOLITION = 'demolition',
-  RADAR_SCOUT = 'scout'
+  RADAR_SCOUT = 'scout',
+  ICE_TANK = 'ice_tank'
 }
 
 export enum TankRarity {

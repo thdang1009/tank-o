@@ -96,16 +96,24 @@ export class ClassSelection extends Scene {
     createClassButtons() {
         const classTypes = Object.values(TankClassType);
         const buttonWidth = 200;
-        const buttonHeight = 350;
-        const buttonSpacing = 40;
-        const totalWidth = (buttonWidth * classTypes.length) + (buttonSpacing * (classTypes.length - 1));
+        const buttonHeight = 400; // Increased height for skill info
+        const buttonSpacing = 20; // Reduced spacing to fit more tanks
+        
+        // Calculate layout - use multiple rows if needed
+        const tanksPerRow = Math.min(5, classTypes.length);
+        const rows = Math.ceil(classTypes.length / tanksPerRow);
+        const totalWidth = (buttonWidth * tanksPerRow) + (buttonSpacing * (tanksPerRow - 1));
         const startX = (this.cameras.main.width - totalWidth) / 2;
-        const startY = 150;
+        const startY = 140;
 
         classTypes.forEach((classType, index) => {
             const classDefinition = TankClasses[classType];
-            const x = startX + (buttonWidth + buttonSpacing) * index + buttonWidth / 2;
-            const y = startY + buttonHeight / 2;
+            
+            // Calculate position for multiple rows
+            const row = Math.floor(index / tanksPerRow);
+            const col = index % tanksPerRow;
+            const x = startX + (buttonWidth + buttonSpacing) * col + buttonWidth / 2;
+            const y = startY + (buttonHeight + 20) * row + buttonHeight / 2;
 
             // Create container for the button and its contents
             const container = this.add.container(x, y);

@@ -85,6 +85,8 @@ export class SkillSystem {
                 return this.activateDemolitionSkill(player, targetPosition);
             case TankClassType.RADAR_SCOUT:
                 return this.activateRadarScoutSkill(player);
+            case TankClassType.ICE_TANK:
+                return this.activateIceTankSkill(player);
             default:
                 return null;
         }
@@ -554,6 +556,90 @@ export class SkillSystem {
         };
     }
     
+    // Ice Tank: Frost Nova - AOE ice damage with slow effect
+    private activateIceTankSkill(player: Player): ActiveSkill {
+        const effects: SkillEffect = {
+            duration: 3000,
+            damage: 120,
+            range: 100
+        };
+        
+        // Create frost nova visual effect
+        const frostNova = this.scene.add.circle(
+            player.body.x,
+            player.body.y,
+            20,
+            0x00ddff,
+            0.7
+        );
+        frostNova.setStrokeStyle(4, 0x0099dd);
+        frostNova.setDepth(50);
+        
+        // Expand frost nova
+        this.scene.tweens.add({
+            targets: frostNova,
+            scale: effects.range! / 20,
+            alpha: 0.3,
+            duration: 800,
+            onComplete: () => {
+                frostNova.destroy();
+            }
+        });
+        
+        // Create ice particles
+        const iceParticles = this.scene.add.particles(0, 0, AssetsEnum.BULLET_BLUE_1, {
+            scale: { start: 0.3, end: 0 },
+            alpha: { start: 0.8, end: 0 },
+            tint: 0x88ddff,
+            lifespan: 2000,
+            frequency: 50,
+            quantity: 3,
+            speed: { min: 30, max: 100 },
+            angle: { min: 0, max: 360 }
+        });
+        
+        iceParticles.setPosition(player.body.x, player.body.y);
+        
+        // In multiplayer, this would damage and slow nearby enemies
+        if (gameStateManager.isGameActive()) {
+            const nearbyPlayers = gameStateManager.getRemotePlayers().filter(p => {
+                const distance = Phaser.Math.Distance.Between(
+                    player.body.x, player.body.y,
+                    p.position.x, p.position.y
+                );
+                return distance <= effects.range! && p.isAlive;
+            });
+            
+            nearbyPlayers.forEach(remotePlayer => {
+                // Report ice damage hit to server
+                gameStateManager.reportHit(
+                    remotePlayer.id,
+                    effects.damage!,
+                    'frost_nova_' + Date.now(),
+                    { x: player.body.x, y: player.body.y }
+                );
+            });
+        }
+        
+        // Screen freeze effect for dramatic impact
+        this.scene.cameras.main.flash(300, 200, 230, 255, true);
+        
+        this.scene.sound.play(AssetsAudioEnum.ABSORB, { volume: 0.6 });
+        
+        // Clean up particles after effect
+        this.scene.time.delayedCall(effects.duration, () => {
+            iceParticles.destroy();
+        });
+        
+        return {
+            type: TankClassType.ICE_TANK,
+            startTime: Date.now(),
+            duration: effects.duration,
+            effects: effects,
+            visualEffects: [frostNova, iceParticles]
+        };
+    }
+    
     // Update active skills
     update(deltaTime: number) {
         const currentTime = Date.now();
@@ -611,7 +697,8 @@ export class SkillSystem {
             [TankClassType.MAGE]: 14000,
             [TankClassType.SPY]: 6000,
             [TankClassType.DEMOLITION]: 18000,
-            [TankClassType.RADAR_SCOUT]: 7000
+            [TankClassType.RADAR_SCOUT]: 7000,
+            [TankClassType.ICE_TANK]: 12000
         };
         
         return cooldowns[skillType] || 10000;

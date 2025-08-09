@@ -21,21 +21,52 @@ export class Bullet {
         // Create bullet sprite
         this.sprite = scene.physics.add.sprite(x, y, texture);
 
-        // Set up physics
-        if (this.sprite.body) {
-            // Set collide world bounds
-            this.sprite.setCollideWorldBounds(false);
-
-            // Listen for world bounds collision
-            scene.physics.world.on('worldbounds', (body: any) => {
-                console.log('dangth worldbounds', body);
-                this.destroy();
-            });
-            // Set velocity based on angle
-            const velocity = scene.physics.velocityFromAngle(angle, this.speed);
-            this.sprite.setVelocity(velocity.x, velocity.y);
-            this.sprite.setRotation(angle * Math.PI / 180);
+        // Ensure physics body exists and is properly configured
+        if (!this.sprite.body) {
+            console.error('Bullet sprite has no physics body!');
+            return;
         }
+        
+        const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+        
+        // Force enable the physics body first
+        body.enable = true;
+        
+        // Set up collision detection (allow bullets to leave world bounds)
+        this.sprite.setCollideWorldBounds(false);
+        body.setCollideWorldBounds(false);
+        
+        // Calculate velocity components
+        const angleInRadians = Phaser.Math.DegToRad(angle);
+        const velocityX = Math.cos(angleInRadians) * this.speed;
+        const velocityY = Math.sin(angleInRadians) * this.speed;
+        
+        console.log('Bullet setup - angle:', angle, 'radians:', angleInRadians, 'velocity:', { x: velocityX, y: velocityY }, 'speed:', this.speed);
+        
+        // Set velocity immediately after body is enabled
+        body.setVelocity(velocityX, velocityY);
+        
+        // Set rotation for visual alignment
+        this.sprite.setRotation(angleInRadians);
+        
+        // Verify the body state
+        console.log('Bullet body after setup - enabled:', body.enable, 'velocity:', { x: body.velocity.x, y: body.velocity.y }, 'mass:', body.mass);
+        
+        // Ensure no drag, friction, or bouncing that could interfere with collisions
+        body.setDrag(0);
+        body.setFriction(0, 0);
+        body.setBounce(0, 0);
+        
+        // Disable all bouncing and restitution
+        body.setMaxVelocity(this.speed * 2, this.speed * 2); // Allow fast movement
+        
+        // Set mass to very small to ensure bullets don't push things around
+        body.setMass(0.1);
+        
+        // Force update the body once to ensure velocity is applied
+        body.updateFromGameObject();
+        
+        console.log('Bullet configured - bounce:', body.bounce, 'mass:', body.mass, 'drag:', body.drag);
 
         // Destroy after lifespan
         scene.time.delayedCall(this.lifespan, () => {
@@ -44,7 +75,8 @@ export class Bullet {
     }
 
     update() {
-        // Additional bullet logic could go here
+        // Let physics handle movement - don't interfere with velocity
+        // The constant velocity reapplication was causing conflicts
     }
 
     isOutOfBounds(): boolean {

@@ -39,6 +39,8 @@ export function getSkillCooldown(classType: TankClassType): number {
             return 18000; // 18 seconds
         case TankClassType.RADAR_SCOUT:
             return 7000;  // 7 seconds
+        case TankClassType.ICE_TANK:
+            return 12000; // 12 seconds
         default:
             return 10000; // Default 10 seconds
     }
@@ -220,6 +222,28 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         tankBodyAsset: AssetsEnum.TANK_BODY_GREEN,
         tankBarrelAsset: AssetsEnum.TANK_GREEN_BARREL_1,
         bulletAsset: AssetsEnum.BULLET_GREEN_2
+    },
+    
+    [TankClassType.ICE_TANK]: {
+        type: TankClassType.ICE_TANK,
+        name: 'Ice Tank (Blizzard)',
+        description: 'Master of ice magic with slowing attacks and area control abilities.',
+        stats: {
+            hp: 900,
+            maxHp: 900,
+            def: 18,
+            atk: 60,
+            spellPower: 160,
+            speed: 130,
+            fireRate: 650,
+            rotationSpeed: 0.0028
+        },
+        skillName: 'Frost Nova',
+        skillDescription: 'Emits a burst of icy energy that damages and heavily slows all nearby enemies.',
+        skillSound: AssetsAudioEnum.SPEED_UP, // Using existing sound, ideally would be ice sound
+        tankBodyAsset: AssetsEnum.TANK_BODY_BLUE, // Using blue for ice theme
+        tankBarrelAsset: AssetsEnum.TANK_BLUE_BARREL_3,
+        bulletAsset: AssetsEnum.BULLET_BLUE_3
     }
 };
 
