@@ -111,7 +111,24 @@ Each tank will have:
 * Each tank will only level up **within a single match**. The purpose is to minimize the gap between veteran and new players, focusing on individual skill.
 * In-match upgrades will provide minor advantages; overall success depends on player skill.
 * **TBD:** Specific mechanics of in-match upgrades.
+---
 
+### 4.6. Customizable Skill/Ability System
+
+To enhance player agency and strategic depth, Tank O will feature a customizable skill and ability system, allowing players to tailor their tanks beyond fixed archetypes.
+
+* **Skill Unlocks:** A diverse list of individual skills and abilities (e.g., specific buffs, debuffs, small utility spells, unique basic attack modifiers) will be unlockable. These unlocks can occur through:
+    * **Achievements:** Completing specific in-game challenges, milestones, or mastery tasks with different tank types.
+    * **Random Drops (No Pay-to-Win):** Receiving skill components or full skills as random drops from completing matches, defeating bosses, or exploring maps. This ensures fair access without requiring real-money purchases.
+* **Customization Points:** Players will have a limited pool of **Customization Points** (e.g., 10 or 20, exact value TBD) to allocate to their chosen skills and abilities. Each skill/ability will have a specific point cost, varying based on its power and utility.
+* **Balance Restrictions:** The system will incorporate restrictions to prevent "super strong and over-point" combinations. This could include:
+    * **Point Caps:** Strict enforcement of the total Customization Points a player can spend.
+    * **Interdependency Rules:** Certain skills might have prerequisites or be mutually exclusive with others.
+    * **Class-Specific Restrictions:** Some skills might only be equippable by certain tank classes (e.g., a powerful healing skill only available to Supporters).
+    * **Automated Validation:** The game will automatically validate custom loadouts to ensure they adhere to balance rules before a match begins.
+* **Custom Match Challenges:** This customization system will enable new challenge modes:
+    * **Solo Challenges:** Players can use their custom-built tanks to tackle specific solo objectives or boss fights, competing for high scores.
+    * **Player-Created Challenges:** Players can create custom match rooms (e.g., 1v1, 2v2, 3v3) and challenge others to face their unique tank builds. This fosters community interaction and competitive innovation.
 ---
 
 ## 5. Maps and Items

@@ -4,6 +4,9 @@ import { Enemy, EnemyType } from '../entities/Enemy';
 import { MapManager, MapType } from '../map/MapManager';
 import { TankClassType } from '../entities/TankClass';
 import { GameMode } from '../constants/GameModes';
+import { PhysicsSystem } from '../systems/PhysicsSystem';
+import { BaseGameMode, GameModeFactory } from '../systems/GameModeSystem';
+import { SkillSystem } from '../systems/SkillSystem';
 
 export interface GameConfig {
     initialWave?: number;
@@ -35,6 +38,11 @@ export class GameManager {
     player: Player;
     enemies: Enemy[] = [];
     mapManager: MapManager;
+    
+    // New systems
+    physicsSystem: PhysicsSystem;
+    gameMode: BaseGameMode | null = null;
+    skillSystem: SkillSystem;
 
     // Game configuration
     config: Required<GameConfig> = {
@@ -78,6 +86,27 @@ export class GameManager {
         // Create map
         this.mapManager = new MapManager(scene, this.config.mapType);
 
+        // Initialize physics system
+        this.physicsSystem = new PhysicsSystem(scene, {
+            world: {
+                width: scene.sys.canvas.width,
+                height: scene.sys.canvas.height,
+                gravity: { x: 0, y: 0 }
+            },
+            enableDebug: false,
+            collisionLayers: [
+                { name: 'players', collidesWith: ['walls', 'enemies', 'explosions'] },
+                { name: 'bullets', collidesWith: ['walls', 'players', 'enemies'] },
+                { name: 'enemies', collidesWith: ['walls', 'players', 'bullets'] },
+                { name: 'walls', collidesWith: ['players', 'bullets', 'enemies', 'explosions'] },
+                { name: 'pickups', collidesWith: ['players'] },
+                { name: 'explosions', collidesWith: ['players', 'enemies', 'walls'] }
+            ]
+        });
+        
+        // Initialize skill system
+        this.skillSystem = new SkillSystem(scene);
+
         // Create player with the selected tank class
         this.player = new Player(
             scene, 
@@ -85,9 +114,19 @@ export class GameManager {
             scene.sys.canvas.height / 2,
             this.config.tankClass
         );
+        
+        // Add player to physics system
+        this.physicsSystem.addPlayerToPhysics(this.player);
+        
+        // Note: Enemies will use legacy collision system for now
 
         // Set up collision detection between player and obstacles
         scene.physics.add.collider(this.player.body, this.mapManager.getObstaclesGroup());
+        
+        // Initialize game mode if not solo
+        if (this.config.gameMode !== GameMode.SOLO) {
+            this.initializeGameMode();
+        }
 
         // Create UI
         this.createUI();
@@ -410,11 +449,25 @@ export class GameManager {
                 }
             }
             
-            // Check for any new player bullets and set up collisions
+            // Check for any new player bullets and set up collisions (legacy system)
             for (const enemy of this.enemies) {
                 this.setupNewBulletCollisions(enemy);
             }
+            
+            // Add new bullets to physics system
+            this.addNewBulletsToPhysics();
         }
+        
+        // Update game mode if active
+        if (this.gameMode && this.gameMode.isActive()) {
+            this.gameMode.update(delta);
+        }
+        
+        // Update skill system
+        this.skillSystem.update(delta);
+        
+        // Update physics system
+        // Note: Physics system handles its own collision detection automatically
         
         // Update UI
         this.updateUI();
@@ -451,12 +504,46 @@ export class GameManager {
         }
     }
 
+    // Initialize game mode based on selected mode
+    initializeGameMode() {
+        try {
+            this.gameMode = GameModeFactory.create(this.scene, this.config.gameMode, this.config);
+            this.gameMode.addPlayer(this.player);
+            this.gameMode.start();
+        } catch (error) {
+            console.error('Failed to initialize game mode:', error);
+            // Fallback to solo mode if game mode fails
+            this.config.gameMode = GameMode.SOLO;
+        }
+    }
+
+    // Add new bullets to physics system for collision detection
+    addNewBulletsToPhysics() {
+        // Add new player bullets
+        for (const bullet of this.player.bullets) {
+            if (!bullet.addedToPhysics) {
+                this.physicsSystem.addBulletToPhysics(bullet);
+                bullet.addedToPhysics = true;
+            }
+        }
+
+        // Add new enemy bullets
+        for (const enemy of this.enemies) {
+            for (const bullet of enemy.bullets) {
+                if (!bullet.addedToPhysics) {
+                    this.physicsSystem.addBulletToPhysics(bullet);
+                    bullet.addedToPhysics = true;
+                }
+            }
+        }
+    }
+
     // Add method to handle player spell casting
     castPlayerSpell() {
         if (this.gameState !== GameState.WAVE_IN_PROGRESS || !this.player.isAlive) return;
         
-        // Use the player's special ability
-        this.player.useSpecialAbility();
+        // Use the skill system instead of old special ability
+        this.skillSystem.useSkill(this.player, this.player.tankClass);
         
         // If it's the Supporter class, apply healing to any allies (for future multiplayer support)
         if (this.player.tankClass === TankClassType.SUPPORTER && this.player.isSkillActive) {

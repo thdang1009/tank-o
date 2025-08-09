@@ -8,6 +8,7 @@ export class Bullet {
     speed: number = 400;
     lifespan: number = 2000; // 2 seconds
     collisionsSetUp: boolean = false; // Added property to track collision setup
+    addedToPhysics: boolean = false; // Track if bullet has been added to physics system
     
     // Multiplayer properties
     private multiplayerId: string = '';

@@ -4,6 +4,7 @@ import { Bullet } from './Bullet';
 import { TankStats, calculateDamage } from './TankStats';
 import { TankClassType, getTankClassDefinition, getSkillCooldown } from './TankClass';
 import { gameStateManager } from '../managers/GameStateManager';
+import { SkillSystem } from '../systems/SkillSystem';
 
 export const deltaDefault = 100;
 
@@ -38,6 +39,9 @@ export class Player {
     private isRemotePlayer: boolean = false;
     private playerName: string = '';
     public isShooting: boolean = false;
+    
+    // Skill system
+    private skillSystem: SkillSystem | null = null;
 
     // Stats UI elements
     statsText: Phaser.GameObjects.Text[] = [];
@@ -84,6 +88,9 @@ export class Player {
     setupInput(scene: Phaser.Scene) {
         if (scene.input.keyboard) {
             this.cursors = scene.input.keyboard.createCursorKeys();
+            
+            // Initialize skill system
+            this.skillSystem = new SkillSystem(scene);
 
             // Add space key for firing
             scene.input.keyboard.on('keydown-SPACE', () => {
@@ -92,7 +99,7 @@ export class Player {
 
             // Add Q key for special ability
             scene.input.keyboard.on('keydown-Q', () => {
-                this.useSpecialAbility();
+                this.useSkill();
             });
 
             // WASD movement
@@ -307,6 +314,11 @@ export class Player {
 
         // Update stats display
         this.updateStatsDisplay();
+        
+        // Update skill system
+        if (this.skillSystem) {
+            this.skillSystem.update(delta);
+        }
 
         // Apply visual effect for stealth if active
         if (this.isInvisible) {
@@ -394,116 +406,12 @@ export class Player {
         });
     }
 
-    useSpecialAbility() {
-        // Check if skill is on cooldown
-        if (Date.now() < this.lastSkillUsed + this.skillCooldown || this.isSkillActive) {
-            return;
+    useSkill(targetPosition?: { x: number, y: number }) {
+        if (!this.skillSystem) {
+            return false;
         }
-
-        // Set cooldown
-        this.lastSkillUsed = Date.now();
-        this.isSkillActive = true;
-        this.skillActiveTime = Date.now();
-
-        const classDefinition = getTankClassDefinition(this.tankClass);
-
-        // Apply effect based on tank class
-        switch (this.tankClass) {
-            case TankClassType.BRUISER:
-                // Shield Wall - 75% damage reduction for 5 seconds
-                this.damageReduction = 0.75;
-                this.skillDuration = 5000;
-
-                // Visual effect - shield aura
-                // Create a visual shield effect using a circle instead of a sprite
-                const shieldCircle = this.scene.add.circle(
-                    this.body.x,
-                    this.body.y,
-                    30,  // radius
-                    0x00ffff, // cyan color
-                    0.3  // alpha
-                );
-                shieldCircle.setStrokeStyle(3, 0x0088ff);
-                shieldCircle.setDepth(0.5);
-
-                // Store reference to destroy later
-                this.skillStatusEffect = this.scene.add.sprite(this.body.x, this.body.y, AssetsEnum.EXPLOSION_1);
-                this.skillStatusEffect.setVisible(false); // Hide the sprite but keep the reference
-
-                // Add the shield circle as a game object to follow the tank
-                this.scene.tweens.add({
-                    targets: shieldCircle,
-                    scale: 1.2,
-                    alpha: 0.5,
-                    duration: 1000,
-                    yoyo: true,
-                    repeat: 4,
-                    onUpdate: () => {
-                        shieldCircle.setPosition(this.body.x, this.body.y);
-                    },
-                    onComplete: () => {
-                        shieldCircle.destroy();
-                    }
-                });
-                break;
-
-            case TankClassType.DEALER:
-                // Rapid Fire - 200% damage for 3 seconds
-                const originalDamage = this.stats.atk;
-                this.stats.atk = originalDamage * 2;
-                this.skillDuration = 3000;
-
-                // Visual effect - muzzle flash or glow
-                this.barrel.setTint(0xff0000);
-                this.barrel.setScale(1.5);
-                this.isRapidFire = true;
-
-                // Reset fire rate when done
-                this.scene.time.delayedCall(this.skillDuration, () => {
-                    this.stats.atk = originalDamage;
-                    this.barrel.setScale(1);
-                    this.barrel.clearTint();
-                    this.isRapidFire = false;
-                });
-                break;
-
-            case TankClassType.SUPPORTER:
-                // Repair Pulse - heal self and allies
-                this.heal(250);
-                this.skillDuration = 1000;
-
-                // Visual effect - healing circle
-                const healCircle = this.scene.add.circle(
-                    this.body.x,
-                    this.body.y,
-                    200,
-                    0x00ff00,
-                    0.3
-                );
-
-                // Animate heal circle expanding
-                this.scene.tweens.add({
-                    targets: healCircle,
-                    alpha: 0,
-                    scale: 1.5,
-                    duration: 1000,
-                    onComplete: () => {
-                        healCircle.destroy();
-                    }
-                });
-                break;
-
-            case TankClassType.VERSATILE:
-                // Stealth Mode - become invisible to enemies and reveal items
-                this.isInvisible = true;
-                this.skillDuration = 10000;
-
-                // Visual effect - transparency
-                this.body.setAlpha(0.5);
-                this.barrel.setAlpha(0.5);
-                break;
-        }
-        this.scene.sound.play(classDefinition.skillSound, { volume: 0.5 });
+        
+        return this.skillSystem.useSkill(this, this.tankClass, targetPosition);
     }
 
     deactivateSkill() {
