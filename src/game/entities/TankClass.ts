@@ -1,12 +1,11 @@
 import { AssetsAudioEnum, AssetsEnum } from '../../app/constants/assets-enum';
 import { TankStats } from './TankStats';
 
-export enum TankClassType {
-    BRUISER = 'bruiser',
-    DEALER = 'dealer',
-    SUPPORTER = 'supporter',
-    VERSATILE = 'versatile'
-}
+// Import shared enum instead of defining locally
+import { TankClassType } from '../../shared/enums/game-enums';
+
+// Re-export the TankClassType enum for backward compatibility
+export { TankClassType } from '../../shared/enums/game-enums';
 
 export interface TankClassDefinition {
     type: TankClassType;
@@ -32,6 +31,14 @@ export function getSkillCooldown(classType: TankClassType): number {
             return 12000; // 12 seconds
         case TankClassType.VERSATILE:
             return 8000;  // 8 seconds
+        case TankClassType.MAGE:
+            return 14000; // 14 seconds
+        case TankClassType.SPY:
+            return 6000;  // 6 seconds
+        case TankClassType.DEMOLITION:
+            return 18000; // 18 seconds
+        case TankClassType.RADAR_SCOUT:
+            return 7000;  // 7 seconds
         default:
             return 10000; // Default 10 seconds
     }
@@ -121,6 +128,90 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         tankBodyAsset: AssetsEnum.TANK_BODY_BLUE,
         tankBarrelAsset: AssetsEnum.TANK_BLUE_BARREL_2,
         bulletAsset: AssetsEnum.BULLET_BLUE_1
+    },
+    
+    [TankClassType.MAGE]: {
+        type: TankClassType.MAGE,
+        name: 'Mage',
+        description: 'Master of elemental magic with powerful spell abilities.',
+        stats: {
+            hp: 600,
+            def: 5,
+            atk: 30,
+            spellPower: 200,
+            speed: 140,
+            fireRate: 700,
+            rotationSpeed: 0.0025
+        },
+        skillName: 'Fireball',
+        skillDescription: 'Launches a devastating fireball that deals massive area damage.',
+        skillSound: AssetsAudioEnum.EXPLOSION,
+        tankBodyAsset: AssetsEnum.TANK_BODY_DARK,
+        tankBarrelAsset: AssetsEnum.TANK_DARK_BARREL_3,
+        bulletAsset: AssetsEnum.BULLET_DARK_2
+    },
+    
+    [TankClassType.SPY]: {
+        type: TankClassType.SPY,
+        name: 'Spy',
+        description: 'Fast and sneaky with enhanced reconnaissance abilities.',
+        stats: {
+            hp: 550,
+            def: 3,
+            atk: 45,
+            spellPower: 80,
+            speed: 220,
+            fireRate: 300,
+            rotationSpeed: 0.005
+        },
+        skillName: 'Shadow Clone',
+        skillDescription: 'Creates decoy clones that confuse enemies.',
+        skillSound: AssetsAudioEnum.DISAPPEAR,
+        tankBodyAsset: AssetsEnum.TANK_BODY_DARK,
+        tankBarrelAsset: AssetsEnum.TANK_DARK_BARREL_1,
+        bulletAsset: AssetsEnum.BULLET_DARK_1
+    },
+    
+    [TankClassType.DEMOLITION]: {
+        type: TankClassType.DEMOLITION,
+        name: 'Demolition',
+        description: 'Heavy artillery specialist with explosive ordnance.',
+        stats: {
+            hp: 1200,
+            def: 20,
+            atk: 100,
+            spellPower: 180,
+            speed: 100,
+            fireRate: 1200,
+            rotationSpeed: 0.002
+        },
+        skillName: 'Carpet Bomb',
+        skillDescription: 'Calls in an artillery strike over a large area.',
+        skillSound: AssetsAudioEnum.EXPLOSION,
+        tankBodyAsset: AssetsEnum.TANK_BODY_HUGE,
+        tankBarrelAsset: AssetsEnum.BARREL_BLACK_TOP,
+        bulletAsset: AssetsEnum.BULLET_RED_3
+    },
+    
+    [TankClassType.RADAR_SCOUT]: {
+        type: TankClassType.RADAR_SCOUT,
+        name: 'Radar Scout',
+        description: 'Fast reconnaissance tank with enhanced detection capabilities.',
+        stats: {
+            hp: 650,
+            def: 8,
+            atk: 55,
+            spellPower: 90,
+            speed: 200,
+            fireRate: 400,
+            rotationSpeed: 0.004
+        },
+        skillName: 'Radar Sweep',
+        skillDescription: 'Reveals all enemies and items on the map for 10 seconds.',
+        skillSound: AssetsAudioEnum.SPEED_UP,
+        tankBodyAsset: AssetsEnum.TANK_BODY_GREEN,
+        tankBarrelAsset: AssetsEnum.TANK_GREEN_BARREL_1,
+        bulletAsset: AssetsEnum.BULLET_GREEN_2
     }
 };
 

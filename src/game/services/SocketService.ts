@@ -1,7 +1,13 @@
 import { io, Socket } from 'socket.io-client';
 import { SocketEventBus } from '../utils/SocketEventBus';
-import { TankClassType } from '../entities/TankClass';
+import { TankClassType } from '../../shared/enums/game-enums';
 import { MapType } from '../map/MapManager';
+import { 
+  ServerToClientEvents, 
+  ClientToServerEvents,
+  InterServerEvents 
+} from '../../shared/interfaces/socket-events';
+import { GameConfiguration, LobbyPlayerInfo } from '../../shared/types/game-types';
 
 // Define the server URL (adjust for production)
 const SERVER_URL = 'http://localhost:3000';

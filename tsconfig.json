@@ -2,6 +2,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "baseUrl": ".",
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
@@ -20,6 +21,12 @@
     "module": "ES2022",
     "useDefineForClassFields": false,
     "strictPropertyInitialization": false,
+    "paths": {
+      "@shared/*": ["src/shared/*"],
+      "@app/*": ["src/app/*"],
+      "@game/*": ["src/game/*"],
+      "@assets/*": ["src/assets/*"]
+    },
     "lib": [
       "ES2022",
       "dom"

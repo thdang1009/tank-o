@@ -6,10 +6,16 @@
     "scripts": {
         "ng": "ng",
         "dev": "node log dev & ng serve",
-        "build": "node log.js build & ng build --base-href='./'",
         "dev-nolog": "ng serve",
+        "dev-full": "node scripts/dev.js",
+        "build": "node log.js build & ng build --base-href='./'",
         "build-nolog": "ng build --base-href='./'",
-        "server": "node server/server.js"
+        "build-prod": "node scripts/build.js",
+        "server": "node server/server.js",
+        "server-dev": "cd server && npm run dev",
+        "lint": "ng lint",
+        "test": "ng test",
+        "test:server": "cd server && npm test"
     },
     "keywords": [
         "game",
