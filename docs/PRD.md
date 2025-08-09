@@ -295,6 +295,27 @@ The Customizable Tank System directly fuels new challenging gameplay modes, leve
 * **Solo Gauntlet/Challenges:** Players use their custom-built tanks to tackle specific solo objectives, timed runs, or unique boss encounters, competing on leaderboards for bragging rights and rewards.
 * **Player-Created Custom Duels/Team Fights (1v1, 2v2, 3v3):** Players can create private rooms, set up custom match rules (e.g., specific map, no ultimate skills, higher point budget), and challenge others to face their unique tank builds. This promotes competitive innovation and allows players to truly test their creations against others in a controlled environment. Leaderboards for these custom challenges could also be implemented.
 
+---
+
+## 4.7. Customizable Skill/Ability System
+
+To enhance player agency and strategic depth, Tank O will feature a customizable skill and ability system, allowing players to tailor their tanks beyond fixed archetypes.
+
+* **Skill Unlocks:** A diverse list of individual skills and abilities (e.g., specific buffs, debuffs, small utility spells, unique basic attack modifiers) will be unlockable. These unlocks can occur through:
+    * **Achievements:** Completing specific in-game challenges, milestones, or mastery tasks with different tank types.
+    * **Random Drops (No Pay-to-Win):** Receiving skill components or full skills as random drops from completing matches, defeating bosses, or exploring maps. This ensures fair access without requiring real-money purchases.
+* **Customization Points:** Players will have a limited pool of **Customization Points** (e.g., 10 or 20, exact value TBD) to allocate to their chosen skills and abilities. Each skill/ability will have a specific point cost, varying based on its power and utility.
+* **Balance Restrictions:** The system will incorporate restrictions to prevent "super strong and over-point" combinations. This could include:
+    * **Point Caps:** Strict enforcement of the total Customization Points a player can spend.
+    * **Interdependency Rules:** Certain skills might have prerequisites or be mutually exclusive with others.
+    * **Class-Specific Restrictions:** Some skills might only be equippable by certain tank classes (e.g., a powerful healing skill only available to Supporters).
+    * **Automated Validation:** The game will automatically validate custom loadouts to ensure they adhere to balance rules before a match begins.
+* **Custom Match Challenges:** This customization system will enable new challenge modes:
+    * **Solo Challenges:** Players can use their custom-built tanks to tackle specific solo objectives or boss fights, competing for high scores.
+    * **Player-Created Challenges:** Players can create custom match rooms (e.g., 1v1, 2v2, 3v3) and challenge others to face their unique tank builds. This fosters community interaction and competitive innovation.
+
+---
+
 ## 5. Maps and Items
 
 * **Maps:** Pre-designed or available as templates, with each match randomly combining these segments.

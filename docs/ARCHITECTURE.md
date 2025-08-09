@@ -127,6 +127,11 @@ src/game/
 - `TankClass.ts` - Tank type definitions and abilities
 - `TankStats.ts` - Statistical system and calculations
 
+**Game Systems:**
+- `SkillSystem.ts` - Comprehensive skill and ability system with 8 tank classes
+- `GameModeSystem.ts` - Multiple game mode implementations (Battle Royale, CTF, Team modes)
+- `PhysicsSystem.ts` - Advanced collision detection and physics engine
+
 ### 4. Communication Layer (Event Bus & Socket)
 **Location:** `/src/game/services/`, `/src/game/utils/`
 
@@ -536,6 +541,204 @@ Asset Manifest → Phaser Loader → Cache Storage → Runtime Access
 - Player behavior analysis
 - Performance metrics dashboard
 - A/B testing framework for game balancing
+
+---
+
+## Customizable Skill/Ability System Architecture
+
+### Overview
+The Customizable Skill/Ability System extends the existing SkillSystem to support player-defined skill combinations, progression, and balance validation. This system enables players to customize their tanks beyond fixed archetypes while maintaining competitive balance.
+
+### System Components
+
+#### 1. Skill Management Layer
+**Location:** `/src/game/systems/`
+
+**Components:**
+```
+src/game/systems/
+├── SkillSystem.ts              # ✅ IMPLEMENTED: Core skill execution
+├── CustomSkillManager.ts       # 🔄 PLANNED: Custom skill combinations
+├── SkillUnlockSystem.ts        # 🔄 PLANNED: Achievement & drop-based unlocks
+├── SkillValidationSystem.ts    # 🔄 PLANNED: Balance & restriction validation
+└── SkillProgressionSystem.ts   # 🔄 PLANNED: Skill leveling & progression
+```
+
+**Responsibilities:**
+- Skill discovery and unlocking mechanisms
+- Custom skill loadout creation and validation
+- Balance restriction enforcement
+- Skill progression and upgrade paths
+
+#### 2. Data Management Layer
+**Location:** `/src/shared/data/`
+
+**Components:**
+```
+src/shared/data/
+├── skills/
+│   ├── skill-database.ts       # 🔄 PLANNED: Complete skill definitions
+│   ├── skill-categories.ts     # 🔄 PLANNED: Skill categorization system
+│   ├── skill-restrictions.ts   # 🔄 PLANNED: Balance restriction rules
+│   └── skill-affinities.ts     # 🔄 PLANNED: Class & prerequisite system
+├── achievements/
+│   ├── skill-achievements.ts   # 🔄 PLANNED: Skill unlock conditions
+│   └── achievement-rewards.ts  # 🔄 PLANNED: Reward mapping system
+└── progression/
+    ├── player-progression.ts   # 🔄 PLANNED: Progress tracking
+    └── customization-points.ts # 🔄 PLANNED: Point allocation system
+```
+
+#### 3. Storage & Persistence
+**Components:**
+- **Local Storage:** Player skill configurations and unlocks
+- **Server Storage:** Achievement progress and validation
+- **Cache Layer:** Frequently accessed skill data
+
+#### 4. User Interface Layer
+**Location:** `/src/app/components/`
+
+**Planned Components:**
+```
+src/app/components/
+├── skill-customization/
+│   ├── skill-tree-view.component.ts    # 🔄 PLANNED: Skill browsing
+│   ├── loadout-builder.component.ts    # 🔄 PLANNED: Custom loadout creation
+│   ├── skill-preview.component.ts      # 🔄 PLANNED: Skill effect preview
+│   └── validation-display.component.ts # 🔄 PLANNED: Balance restriction UI
+├── progression/
+│   ├── achievement-tracker.component.ts # 🔄 PLANNED: Progress tracking
+│   └── unlock-notification.component.ts # 🔄 PLANNED: New skill notifications
+└── match-preparation/
+    └── loadout-selector.component.ts    # 🔄 PLANNED: Pre-match skill selection
+```
+
+### System Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    CUSTOMIZABLE SKILL SYSTEM                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────┐    ┌─────────────────────────────────────┐  │
+│  │    UI Layer         │    │         Game Systems Layer         │  │
+│  │                     │    │                                     │  │
+│  │ • Skill Tree View   │◄──►│ • CustomSkillManager              │  │
+│  │ • Loadout Builder   │    │ • SkillValidationSystem            │  │
+│  │ • Preview System    │    │ • SkillUnlockSystem                │  │
+│  └─────────────────────┘    └─────────────────────────────────────┘  │
+│           │                                   │                      │
+│           │              ┌─────────────────────────────────────┐     │
+│           └─────────────►│        Data Management Layer       │     │
+│                          │                                     │     │
+│                          │ • Skill Database                   │     │
+│                          │ • Achievement System               │     │
+│                          │ • Progression Tracking             │     │
+│                          └─────────────────────────────────────┘     │
+│                                       │                              │
+│  ┌─────────────────────┐              │                              │
+│  │   Existing Systems  │◄─────────────┘                              │
+│  │                     │                                              │
+│  │ • SkillSystem.ts    │ ◄── Integration Point                       │
+│  │ • GameModeSystem.ts │                                              │
+│  │ • PhysicsSystem.ts  │                                              │
+│  └─────────────────────┘                                              │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Implementation Strategy
+
+#### Phase 1: Foundation (High Priority)
+1. **Skill Database Design**
+   - Define comprehensive skill data structure
+   - Implement skill categorization system
+   - Create balance restriction framework
+
+2. **Validation System**
+   - Point-based allocation system
+   - Class restriction enforcement
+   - Prerequisite dependency checking
+
+#### Phase 2: Progression System (Medium Priority)
+1. **Achievement Integration**
+   - Skill unlock conditions
+   - Progress tracking mechanisms
+   - Reward distribution system
+
+2. **Customization Points**
+   - Point earning mechanisms
+   - Allocation interface
+   - Respec functionality
+
+#### Phase 3: Advanced Features (Lower Priority)
+1. **Social Features**
+   - Loadout sharing system
+   - Community skill builds
+   - Rating and feedback system
+
+2. **Competitive Integration**
+   - Tournament restrictions
+   - Seasonal skill rotations
+   - Leaderboard integration
+
+### Integration with Existing Systems
+
+#### Current SkillSystem Integration
+```typescript
+// Enhanced SkillSystem with custom skill support
+export class SkillSystem {
+    private customSkillManager: CustomSkillManager;
+    
+    // Current implementation + custom skill execution
+    useSkill(player: Player, skillId: string, targetPosition?: Position): boolean {
+        // Check if skill is custom or default
+        if (this.customSkillManager.isCustomSkill(skillId)) {
+            return this.customSkillManager.executeCustomSkill(player, skillId, targetPosition);
+        }
+        // Existing implementation...
+    }
+}
+```
+
+#### Database Schema Design
+```typescript
+interface CustomSkill {
+    id: string;
+    name: string;
+    description: string;
+    category: SkillCategory;
+    pointCost: number;
+    restrictions: SkillRestriction[];
+    effects: SkillEffect[];
+    unlockConditions: AchievementCondition[];
+    visualEffects: VisualEffectConfig;
+}
+
+interface PlayerSkillLoadout {
+    playerId: string;
+    name: string;
+    tankClass: TankClassType;
+    equippedSkills: string[];
+    totalPointsUsed: number;
+    isValid: boolean;
+}
+```
+
+### Security & Balance Considerations
+
+#### Client-Side Validation
+- Real-time loadout validation
+- Visual feedback for invalid combinations
+- Point allocation tracking
+
+#### Server-Side Validation
+- Authoritative skill validation before matches
+- Anti-cheat measures for skill modifications
+- Balance enforcement across game modes
+
+#### Balance Monitoring
+- Telemetry collection for skill usage
+- Win-rate analysis by skill combination
+- Automated balance alerts for overpowered builds
 
 ---
 

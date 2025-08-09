@@ -476,6 +476,229 @@ interface GameEvent {
 
 ---
 
+### 12. **Custom Skill** 🆕
+```typescript
+interface CustomSkill {
+  id: string              // Primary Key
+  name: string           // Skill name
+  description: string    // Skill description
+  category: SkillCategory // Skill category
+  
+  // Point System
+  pointCost: number      // Customization points required
+  maxLevel: number       // Maximum skill level (1-5)
+  
+  // Effects per level
+  effects: SkillEffect[] // Array of effects, indexed by level
+  
+  // Requirements & Restrictions
+  requiredLevel: number  // Player level required
+  tankClassRestrictions: TankCategory[] // Which classes can use this
+  prerequisites: string[] // Other skill IDs required
+  mutualExclusions: string[] // Cannot be equipped together
+  
+  // Unlock Conditions
+  unlockType: SkillUnlockType
+  unlockConditions: UnlockCondition[]
+  
+  // Visual & Audio
+  iconAsset: string
+  effectAssets: VisualEffectConfig
+  soundEffects: AudioEffectConfig
+  
+  // Meta
+  rarity: SkillRarity
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+enum SkillCategory {
+  OFFENSIVE = 'offensive',
+  DEFENSIVE = 'defensive', 
+  UTILITY = 'utility',
+  SUPPORT = 'support',
+  MOBILITY = 'mobility',
+  PASSIVE = 'passive'
+}
+
+enum SkillUnlockType {
+  ACHIEVEMENT = 'achievement',
+  RANDOM_DROP = 'drop',
+  LEVEL_UNLOCK = 'level',
+  MASTERY_UNLOCK = 'mastery'
+}
+
+enum SkillRarity {
+  COMMON = 'common',
+  UNCOMMON = 'uncommon',
+  RARE = 'rare', 
+  EPIC = 'epic',
+  LEGENDARY = 'legendary'
+}
+
+interface SkillEffect {
+  type: string           // damage, heal, buff, debuff, etc.
+  value: number         // Effect magnitude
+  duration?: number     // Effect duration (ms)
+  range?: number        // Effect range
+  cooldown?: number     // Cooldown override
+}
+
+interface UnlockCondition {
+  type: string          // kill_count, win_games, use_skill, etc.
+  value: number         // Required value
+  context?: any         // Additional context (tank class, game mode, etc.)
+}
+
+interface VisualEffectConfig {
+  particles?: string
+  animation?: string
+  tint?: number
+  scale?: number
+}
+
+interface AudioEffectConfig {
+  activation?: string
+  impact?: string
+  ambient?: string
+}
+```
+
+**Relationships:**
+- One-to-Many with `UserSkillUnlock`
+- Many-to-Many with `PlayerSkillLoadout`
+
+---
+
+### 13. **User Skill Unlock** 🆕
+```typescript
+interface UserSkillUnlock {
+  id: string              // Primary Key
+  userId: string          // Foreign Key to User
+  skillId: string         // Foreign Key to CustomSkill
+  
+  // Unlock Information
+  unlockedAt: Date
+  unlockMethod: SkillUnlockType
+  unlockContext?: string  // Achievement ID, session ID, etc.
+  
+  // Progression
+  currentLevel: number    // Current skill level (1-maxLevel)
+  usageCount: number      // Times this skill has been used
+  lastUsedAt?: Date       // Last time skill was used
+  
+  // Mastery
+  masteryPoints: number   // Points toward mastery
+  isMastered: boolean     // Has reached mastery level
+  masteredAt?: Date
+}
+```
+
+**Relationships:**
+- Many-to-One with `User`
+- Many-to-One with `CustomSkill`
+
+---
+
+### 14. **Player Skill Loadout** 🆕  
+```typescript
+interface PlayerSkillLoadout {
+  id: string              // Primary Key
+  userId: string          // Foreign Key to User
+  name: string           // Loadout name (e.g., "Tank Killer", "Support Build")
+  
+  // Loadout Configuration
+  tankClassId: string     // Foreign Key to TankClass
+  equippedSkills: SkillSlot[] // Array of equipped skills
+  totalPointsUsed: number // Sum of all skill point costs
+  maxPoints: number       // Maximum points allowed
+  
+  // Validation
+  isValid: boolean        // Passes all restriction checks
+  validationErrors: string[] // List of validation issues
+  
+  // Usage
+  isDefault: boolean      // Default loadout for this tank class
+  isFavorite: boolean     // User marked as favorite
+  usageCount: number      // Times this loadout was used
+  lastUsedAt?: Date
+  
+  // Meta
+  createdAt: Date
+  updatedAt: Date
+  isActive: boolean       // Can be selected
+}
+
+interface SkillSlot {
+  slotNumber: number      // 1-3 (or configurable max slots)
+  skillId: string         // Foreign Key to CustomSkill
+  skillLevel: number      // Level of this skill in loadout
+  pointsAllocated: number // Points used for this skill
+}
+```
+
+**Relationships:**
+- Many-to-One with `User`
+- Many-to-One with `TankClass`
+- Many-to-Many with `CustomSkill` (through SkillSlot array)
+
+---
+
+### 15. **Skill Achievement** 🆕
+```typescript  
+interface SkillAchievement extends Achievement {
+  // Inherits from Achievement base class
+  
+  // Skill-Specific Properties
+  rewardSkillIds: string[]    // Skills unlocked by this achievement
+  rewardCustomizationPoints: number // Bonus points awarded
+  
+  // Requirements can include:
+  // - Use specific skills X times
+  // - Achieve skill mastery
+  // - Win games with custom loadouts
+  // - Create and share loadouts
+}
+```
+
+**Relationships:**
+- Extends `Achievement`
+- Many-to-Many with `CustomSkill` (rewards)
+
+---
+
+### 16. **Skill Usage Analytics** 🆕
+```typescript
+interface SkillUsageEvent extends GameEvent {
+  // Inherits from GameEvent base class
+  
+  // Skill-Specific Data
+  skillId: string           // Foreign Key to CustomSkill
+  skillLevel: number        // Skill level used
+  loadoutId: string         // Foreign Key to PlayerSkillLoadout
+  
+  // Usage Context
+  targetPosition?: {x: number, y: number}
+  targetPlayerId?: string   // If skill targeted another player
+  effectiveRange?: number   // Actual range/area affected
+  damage?: number          // Damage dealt (if applicable)
+  healing?: number         // Healing done (if applicable)
+  
+  // Outcome
+  wasSuccessful: boolean   // Did skill execute successfully
+  wasCancelled: boolean    // Was skill interrupted/cancelled
+  cooldownStart: Date      // When cooldown began
+}
+```
+
+**Relationships:**
+- Extends `GameEvent`
+- Many-to-One with `CustomSkill`
+- Many-to-One with `PlayerSkillLoadout`
+
+---
+
 ## Data Relationships Summary
 
 ### Primary Relationships
@@ -484,16 +707,25 @@ User (1) ←→ (M) GameSession [host]
 User (1) ←→ (M) UserTankMastery
 User (1) ←→ (M) UserAchievement  
 User (1) ←→ (M) Friendship [both directions]
+User (1) ←→ (M) UserSkillUnlock ✨ NEW
+User (1) ←→ (M) PlayerSkillLoadout ✨ NEW
 
 GameSession (1) ←→ (M) GameSessionPlayer
 GameSession (1) ←→ (M) GameEvent
+GameSession (1) ←→ (M) SkillUsageEvent ✨ NEW
 
 TankClass (1) ←→ (M) UserTankMastery
 TankClass (1) ←→ (M) GameSessionPlayer
+TankClass (1) ←→ (M) PlayerSkillLoadout ✨ NEW
 
 Achievement (1) ←→ (M) UserAchievement
+SkillAchievement (1) ←→ (M) CustomSkill [rewards] ✨ NEW
+
+CustomSkill (1) ←→ (M) UserSkillUnlock ✨ NEW
+CustomSkill (M) ←→ (M) PlayerSkillLoadout ✨ NEW
 
 GameSessionPlayer (1) ←→ (M) PlayerAction
+PlayerSkillLoadout (1) ←→ (M) SkillUsageEvent ✨ NEW
 ```
 
 ### Secondary Relationships
@@ -514,11 +746,17 @@ Item (M) ←→ (M) PlayerItemCollection
 - `UserTankMastery.userId` + `tankClassId`
 - `GameSessionPlayer.sessionId`
 - `GameEvent.sessionId` + `timestamp`
+- `CustomSkill.category` + `rarity` ✨ NEW
+- `UserSkillUnlock.userId` + `skillId` ✨ NEW
+- `PlayerSkillLoadout.userId` + `tankClassId` ✨ NEW
+- `SkillUsageEvent.skillId` + `timestamp` ✨ NEW
 
 ### Performance Optimizations
 - Denormalize frequently accessed data (e.g., win rates)
 - Use read replicas for analytics queries
 - Implement caching for tank class definitions and map templates
+- Cache frequently accessed skill loadouts and unlock data ✨ NEW
+- Precompute skill usage statistics for balance monitoring ✨ NEW
 - Archive completed game sessions after 30 days
 
 ### Data Retention Policies
@@ -526,6 +764,8 @@ Item (M) ←→ (M) PlayerItemCollection
 - Game sessions: Archive after 30 days, delete after 1 year
 - User data: Retain indefinitely for registered users, 30 days for guests
 - Achievements and mastery: Permanent retention
+- Skill usage events: Keep for 180 days for balance analysis ✨ NEW
+- Skill unlocks and loadouts: Permanent retention ✨ NEW
 
 ---
 
