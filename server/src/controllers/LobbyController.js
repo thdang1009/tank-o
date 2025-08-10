@@ -95,16 +95,19 @@ class LobbyController {
             
         } catch (error) {
             console.error('Error creating lobby:', error);
-            socket.emit('error', { message: error.message });
+            socket.emit('socket-error', { message: error.message });
         }
     }
     
     handleJoinLobby(socket, data) {
         try {
-            const { lobbyCode, username } = data;
+            const { lobbyId, lobbyCode, username } = data;
+            
+            // Support both lobbyId and lobbyCode for joining
+            const codeToJoin = lobbyCode || lobbyId;
             
             const lobby = this.lobbyService.joinLobby(
-                lobbyCode,
+                codeToJoin,
                 socket.id,
                 username
             );
@@ -132,7 +135,7 @@ class LobbyController {
             
         } catch (error) {
             console.error('Error joining lobby:', error);
-            socket.emit('error', { message: error.message });
+            socket.emit('socket-error', { message: error.message });
         }
     }
     
@@ -184,7 +187,7 @@ class LobbyController {
             
         } catch (error) {
             console.error('Error updating ready status:', error);
-            socket.emit('error', { message: error.message });
+            socket.emit('socket-error', { message: error.message });
         }
     }
     
@@ -203,7 +206,7 @@ class LobbyController {
             
         } catch (error) {
             console.error('Error selecting tank class:', error);
-            socket.emit('error', { message: error.message });
+            socket.emit('socket-error', { message: error.message });
         }
     }
     
@@ -225,7 +228,7 @@ class LobbyController {
             
         } catch (error) {
             console.error('Error starting game:', error);
-            socket.emit('error', { message: error.message });
+            socket.emit('socket-error', { message: error.message });
         }
     }
     
@@ -246,7 +249,7 @@ class LobbyController {
             
         } catch (error) {
             console.error('Error changing game mode:', error);
-            socket.emit('error', { message: error.message });
+            socket.emit('socket-error', { message: error.message });
         }
     }
     
@@ -267,7 +270,7 @@ class LobbyController {
             
         } catch (error) {
             console.error('Error changing map type:', error);
-            socket.emit('error', { message: error.message });
+            socket.emit('socket-error', { message: error.message });
         }
     }
     

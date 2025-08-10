@@ -6,9 +6,9 @@ Priority Development Roadmap
     - Complete lobby system implementation
     - Implement real-time game synchronization
     - Add player state management across clients
-  2. Game Mechanics Implementation ✅ COMPLETED
-    - ✅ Finish all tank class abilities and skills (8 tank classes with unique abilities)
-    - ✅ Implement all game modes (Battle Royale, CTF, Team Deathmatch, Adventure)
+  2. Game Mechanics Implementation 🚧
+    - 🚧 Finish all tank class abilities and skills (8 tank classes with unique abilities)
+    - 🚧 Implement all game modes (Battle Royale, CTF, Team Deathmatch, Adventure)
     - ✅ Add collision detection and physics (comprehensive PhysicsSystem)
   
   3. Customizable Skill/Ability System 🔄 NEW HIGH PRIORITY

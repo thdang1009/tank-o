@@ -1464,20 +1464,20 @@ export class SkillSystem {
         return Date.now() < player.lastSkill1Used + cooldown;
     }
     
-    private getSkillCooldown(skillType: TankClassType): number {
+    private getSkillCooldown(skillType: TankClassType, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1'): number {
         const cooldowns = {
-            [TankClassType.BRUISER]: 15000,
-            [TankClassType.DEALER]: 10000,
-            [TankClassType.SUPPORTER]: 12000,
-            [TankClassType.VERSATILE]: 8000,
-            [TankClassType.MAGE]: 14000,
-            [TankClassType.SPY]: 6000,
-            [TankClassType.DEMOLITION]: 18000,
-            [TankClassType.RADAR_SCOUT]: 7000,
-            [TankClassType.ICE_TANK]: 12000
+            [TankClassType.BRUISER]: { skill1: 8000, skill2: 15000, ultimate: 45000 },
+            [TankClassType.DEALER]: { skill1: 6000, skill2: 10000, ultimate: 35000 },
+            [TankClassType.SUPPORTER]: { skill1: 10000, skill2: 12000, ultimate: 40000 },
+            [TankClassType.VERSATILE]: { skill1: 5000, skill2: 8000, ultimate: 30000 },
+            [TankClassType.MAGE]: { skill1: 12000, skill2: 14000, ultimate: 50000 },
+            [TankClassType.SPY]: { skill1: 4000, skill2: 6000, ultimate: 25000 },
+            [TankClassType.DEMOLITION]: { skill1: 15000, skill2: 18000, ultimate: 60000 },
+            [TankClassType.RADAR_SCOUT]: { skill1: 5000, skill2: 7000, ultimate: 30000 },
+            [TankClassType.ICE_TANK]: { skill1: 8000, skill2: 12000, ultimate: 40000 }
         };
         
-        return cooldowns[skillType] || 10000;
+        return cooldowns[skillType]?.[skillSlot] || 10000;
     }
     
     private getBarrelTip(player: Player): { x: number, y: number } {
@@ -1540,9 +1540,23 @@ export class SkillSystem {
     }
     
     // Get remaining cooldown time for a player's skill
-    getSkillCooldownRemaining(player: Player, skillType: TankClassType): number {
-        const cooldown = this.getSkillCooldown(skillType);
-        const elapsed = Date.now() - player.lastSkill1Used;
+    getSkillCooldownRemaining(player: Player, skillType: TankClassType, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1'): number {
+        const cooldown = this.getSkillCooldown(skillType, skillSlot);
+        let lastUsed: number;
+        
+        switch (skillSlot) {
+            case 'skill1':
+                lastUsed = player.lastSkill1Used;
+                break;
+            case 'skill2':
+                lastUsed = player.lastSkill2Used;
+                break;
+            case 'ultimate':
+                lastUsed = player.lastUltimateUsed;
+                break;
+        }
+        
+        const elapsed = Date.now() - lastUsed;
         return Math.max(0, cooldown - elapsed);
     }
     

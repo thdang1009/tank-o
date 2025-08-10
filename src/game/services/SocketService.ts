@@ -58,6 +58,7 @@ export interface LobbyPlayer {
 
 export interface Lobby {
     id: string;
+    lobbyCode: string;
     host: string;
     gameMode: string;
     mapType: MapType;
@@ -111,8 +112,7 @@ export class SocketService {
   }
   
   constructor() {
-    // Setup event listeners
-    this.setupSocketListeners();
+    // Event listeners will be set up when socket connects
   }
   
   /**
@@ -145,6 +145,9 @@ export class SocketService {
         transports: ['websocket'],
         autoConnect: true
       });
+      
+      // Setup all event listeners
+      this.setupSocketListeners();
       
       // Setup event listeners for connection
       this.socket.once(SocketEvents.CONNECT, () => {
@@ -312,6 +315,17 @@ export class SocketService {
         return;
       }
       
+      // Set up timeout
+      const timeout = setTimeout(() => {
+        reject(new Error('Lobby creation timeout'));
+      }, 10000); // 10 second timeout
+      
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.socket?.off(SocketEvents.LOBBY_CREATED);
+        this.socket?.off(SocketEvents.ERROR);
+      };
+      
       this.socket.emit(SocketEvents.CREATE_LOBBY, {
         username,
         gameMode,
@@ -319,11 +333,13 @@ export class SocketService {
         isPrivate
       });
       
-      this.socket.once(SocketEvents.LOBBY_CREATED, (lobby: Lobby) => {
-        resolve(lobby);
+      this.socket.once(SocketEvents.LOBBY_CREATED, (data: any) => {
+        cleanup();
+        resolve(data.lobby || data);
       });
       
       this.socket.once(SocketEvents.ERROR, (error: any) => {
+        cleanup();
         reject(error);
       });
     });
@@ -342,16 +358,29 @@ export class SocketService {
         return;
       }
       
+      // Set up timeout
+      const timeout = setTimeout(() => {
+        reject(new Error('Join lobby timeout'));
+      }, 10000); // 10 second timeout
+      
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.socket?.off(SocketEvents.LOBBY_JOINED);
+        this.socket?.off(SocketEvents.ERROR);
+      };
+      
       this.socket.emit(SocketEvents.JOIN_LOBBY, {
-        lobbyId,
+        lobbyCode: lobbyId, // lobbyId is actually the lobby code when joining
         username
       });
       
-      this.socket.once(SocketEvents.LOBBY_JOINED, (lobby: Lobby) => {
-        resolve(lobby);
+      this.socket.once(SocketEvents.LOBBY_JOINED, (data: any) => {
+        cleanup();
+        resolve(data.lobby || data);
       });
       
       this.socket.once(SocketEvents.ERROR, (error: any) => {
+        cleanup();
         reject(error);
       });
     });

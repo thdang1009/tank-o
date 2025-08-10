@@ -105,7 +105,7 @@ export class LobbyScene extends Scene {
                 console.log('Lobby created:', lobby);
                 this.lobby = lobby;
                 this.playerId = this.socketService.socket?.id || '';
-                this.lobbyCodeText.setText(lobby.id);
+                this.lobbyCodeText.setText(lobby.lobbyCode || lobby.id);
                 this.updatePlayerList();
                 this.updateGameSettingsButtons();
             })
@@ -212,7 +212,7 @@ export class LobbyScene extends Scene {
         // Clear existing player list
         this.playerListContainer.removeAll();
 
-        if (!this.lobby) return;
+        if (!this.lobby || !this.lobby.players) return;
 
         const players = this.lobby.players;
         const startY = -150; // Starting Y position

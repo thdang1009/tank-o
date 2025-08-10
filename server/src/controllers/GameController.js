@@ -58,7 +58,7 @@ class GameController {
             
             // Validate the update
             if (!this.validatePlayerUpdate(data)) {
-                socket.emit('error', { message: 'Invalid player update' });
+                socket.emit('socket-error', { message: 'Invalid player update' });
                 return;
             }
             
@@ -80,7 +80,7 @@ class GameController {
             
         } catch (error) {
             console.error('Error handling player update:', error);
-            socket.emit('error', { message: 'Failed to update player state' });
+            socket.emit('socket-error', { message: 'Failed to update player state' });
         }
     }
     
@@ -98,7 +98,7 @@ class GameController {
             
             // Validate bullet data
             if (!this.validateBulletData(data)) {
-                socket.emit('error', { message: 'Invalid bullet data' });
+                socket.emit('socket-error', { message: 'Invalid bullet data' });
                 return;
             }
             
@@ -118,7 +118,7 @@ class GameController {
             
         } catch (error) {
             console.error('Error handling bullet fired:', error);
-            socket.emit('error', { message: 'Failed to fire bullet' });
+            socket.emit('socket-error', { message: 'Failed to fire bullet' });
         }
     }
     
@@ -179,7 +179,7 @@ class GameController {
             
         } catch (error) {
             console.error('Error handling player hit:', error);
-            socket.emit('error', { message: 'Failed to process hit' });
+            socket.emit('socket-error', { message: 'Failed to process hit' });
         }
     }
     
@@ -199,7 +199,7 @@ class GameController {
             
             // Validate skill usage (cooldowns, etc.)
             if (!this.validateSkillUsage(player, skillType)) {
-                socket.emit('error', { message: 'Skill not available' });
+                socket.emit('socket-error', { message: 'Skill not available' });
                 return;
             }
             
@@ -217,7 +217,7 @@ class GameController {
             
         } catch (error) {
             console.error('Error handling skill usage:', error);
-            socket.emit('error', { message: 'Failed to use skill' });
+            socket.emit('socket-error', { message: 'Failed to use skill' });
         }
     }
     
@@ -248,7 +248,7 @@ class GameController {
             
         } catch (error) {
             console.error('Error handling respawn request:', error);
-            socket.emit('error', { message: 'Failed to respawn' });
+            socket.emit('socket-error', { message: 'Failed to respawn' });
         }
     }
     

@@ -182,7 +182,7 @@ class GameServer {
                             error: error.message
                         });
                         
-                        socket.emit('error', {
+                        socket.emit('socket-error', {
                             message: 'Rate limit exceeded. Please slow down.',
                             code: 'RATE_LIMIT_EXCEEDED'
                         });
