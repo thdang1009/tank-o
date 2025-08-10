@@ -98,8 +98,8 @@ The game features 9 distinct tank types with unique abilities and playstyles:
    - **Skills:** Heal Pulse, Shield Boost, Mass Resurrection
    
 4. **Versatile** (All-rounder Role)
-   - *Balanced stats with adaptable playstyle for any situation.*
-   - **Skills:** Adaptive Combat, Tactical Strike, Overcharge
+   - *Balanced stats with powerful offensive and utility capabilities.*
+   - **Skills:** Triple Rocket Barrage, Self Repair, Devastation Strike
    
 5. **Mage** (Spell Caster Role)
    - *High spell power with devastating magical abilities.*

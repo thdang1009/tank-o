@@ -754,144 +754,257 @@ export class SkillSystem {
         }
     }
 
-    // Versatile Skill 1: Stealth Mode - Become invisible and gain speed
+    // Versatile Skill 1: Triple Rocket Barrage - Launch 3 homing rockets
     private versatileStealthMode(player: Player): ActiveSkill {
         const effects: SkillEffect = {
-            duration: 8000,
-            speedMultiplier: 1.5
+            duration: 3000,
+            damage: 50
         };
 
-        // Apply stealth
-        player.isInvisible = true;
-        const originalSpeed = player.stats.speed;
-        player.stats.speed = originalSpeed * effects.speedMultiplier!;
+        // Find closest 3 enemies
+        const gameScene = this.scene as any;
+        const targets: any[] = [];
 
-        // Visual effect - partial transparency
-        player.body.setAlpha(0.3);
-        player.barrel.setAlpha(0.3);
+        if (gameScene.gameManager && gameScene.gameManager.enemies) {
+            const enemyList = gameScene.gameManager.enemies.children ?
+                gameScene.gameManager.enemies.children.entries :
+                gameScene.gameManager.enemies;
 
-        // Stealth particles
-        const stealthEffect = this.scene.add.particles(0, 0, AssetsEnum.BULLET_BLUE_1, {
-            scale: { start: 0.1, end: 0 },
-            alpha: { start: 0.5, end: 0 },
-            lifespan: 1000,
-            frequency: 100,
-            quantity: 3
+            const aliveEnemies = enemyList.filter((enemy: any) => 
+                enemy && enemy.isAlive && enemy.body && enemy.body.active
+            );
+
+            // Sort by distance and take closest 3
+            const sortedEnemies = aliveEnemies.sort((a: any, b: any) => {
+                const distA = Phaser.Math.Distance.Between(player.body.x, player.body.y, a.body.x, a.body.y);
+                const distB = Phaser.Math.Distance.Between(player.body.x, player.body.y, b.body.x, b.body.y);
+                return distA - distB;
+            });
+
+            targets.push(...sortedEnemies.slice(0, 3));
+        }
+
+        // Create rockets for each target
+        const rockets: any[] = [];
+        targets.forEach((target, index) => {
+            const rocket = this.scene.add.sprite(
+                player.body.x,
+                player.body.y,
+                AssetsEnum.BULLET_RED_1
+            );
+            rocket.setScale(1.5);
+            rocket.setTint(0x4444ff);
+            
+            // Calculate initial position offset for each rocket
+            const offsetAngle = player.barrel.rotation + (index - 1) * 0.3;
+            rocket.x = player.body.x + Math.cos(offsetAngle) * 30;
+            rocket.y = player.body.y + Math.sin(offsetAngle) * 30;
+
+            rockets.push({ sprite: rocket, target: target });
+
+            // Animate rocket to target
+            this.scene.tweens.add({
+                targets: rocket,
+                x: target.body.x,
+                y: target.body.y,
+                duration: 1500,
+                ease: 'Cubic.Out',
+                onUpdate: () => {
+                    // Rotate rocket toward target
+                    if (target.body && target.body.active) {
+                        const angle = Phaser.Math.Angle.Between(rocket.x, rocket.y, target.body.x, target.body.y);
+                        rocket.setRotation(angle);
+                    }
+                },
+                onComplete: () => {
+                    // Deal damage on impact
+                    if (target && target.isAlive && target.body && target.body.active) {
+                        const damage = effects.damage!;
+                        if (target.takeDamage) {
+                            target.takeDamage(damage);
+                        }
+                        
+                        // Impact effect
+                        const explosion = this.scene.add.circle(rocket.x, rocket.y, 20, 0xff4444, 0.7);
+                        this.scene.tweens.add({
+                            targets: explosion,
+                            scaleX: 2,
+                            scaleY: 2,
+                            alpha: 0,
+                            duration: 300,
+                            onComplete: () => explosion.destroy()
+                        });
+                    }
+                    rocket.destroy();
+                }
+            });
         });
 
-        stealthEffect.startFollow(player.body);
-
-        this.scene.sound.play(AssetsAudioEnum.DISAPPEAR, { volume: 0.3 });
+        this.scene.sound.play(AssetsAudioEnum.SHOOT, { volume: 0.4 });
 
         return {
             type: TankClassType.VERSATILE,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [stealthEffect],
-            onEnd: (player: Player) => {
-                player.isInvisible = false;
-                player.stats.speed = originalSpeed;
-                player.body.setAlpha(1);
-                player.barrel.setAlpha(1);
-                stealthEffect.destroy();
+            visualEffects: rockets.map(r => r.sprite),
+            onEnd: () => {
+                rockets.forEach(rocket => {
+                    if (rocket.sprite && rocket.sprite.active) {
+                        rocket.sprite.destroy();
+                    }
+                });
             }
         };
     }
 
-    // Versatile Skill 2: Scout Vision
+    // Versatile Skill 2: Self Repair - Heal the tank
     private versatileScoutVision(player: Player): ActiveSkill {
         const effects: SkillEffect = {
-            duration: 5000,
-            range: 400
+            duration: 1000,
+            healing: Math.floor(player.stats.maxHp * 0.25) // Heal 25% of max HP
         };
 
-        // Create radar effect
-        const scoutRadar = this.scene.add.circle(
-            player.body.x,
-            player.body.y,
-            effects.range!,
-            0x00ff00,
-            0.1
-        );
-        scoutRadar.setStrokeStyle(3, 0x00ff00);
-        scoutRadar.setDepth(1);
+        // Apply healing immediately
+        const healAmount = effects.healing!;
+        player.stats.hp = Math.min(player.stats.hp + healAmount, player.stats.maxHp);
 
-        this.scene.tweens.add({
-            targets: scoutRadar,
-            alpha: 0.3,
-            scaleX: 1.2,
-            scaleY: 1.2,
-            duration: 1000,
-            yoyo: true,
-            repeat: -1,
-            onUpdate: () => {
-                if (player.body.active) {
-                    scoutRadar.setPosition(player.body.x, player.body.y);
-                }
-            }
+        // Create healing effect
+        const healingEffect = this.scene.add.particles(0, 0, AssetsEnum.BULLET_GREEN_1, {
+            scale: { start: 0.3, end: 0 },
+            alpha: { start: 0.8, end: 0 },
+            lifespan: 800,
+            frequency: 50,
+            quantity: 5,
+            emitZone: { type: 'edge', source: new Phaser.Geom.Circle(0, 0, 25), quantity: 20 }
         });
 
-        this.scene.sound.play(AssetsAudioEnum.SPEED_UP, { volume: 0.4 });
+        healingEffect.startFollow(player.body);
+
+        // Green tint effect
+        player.body.setTint(0x44ff44);
+        player.barrel.setTint(0x44ff44);
+
+        this.scene.sound.play(AssetsAudioEnum.HEAL, { volume: 0.5 });
 
         return {
             type: TankClassType.VERSATILE,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [scoutRadar],
-            onEnd: () => {
-                scoutRadar.destroy();
+            visualEffects: [healingEffect],
+            onEnd: (player: Player) => {
+                player.body.clearTint();
+                player.barrel.clearTint();
+                healingEffect.destroy();
             }
         };
     }
 
-    // Versatile Ultimate: Tactical Strike
+    // Versatile Ultimate: Devastation Strike - Random damage and stun all enemies
     private versatileTacticalStrike(player: Player): ActiveSkill {
         const effects: SkillEffect = {
-            duration: 6000,
-            damageMultiplier: 1.5
+            duration: 3000,
+            damage: 100, // This will be randomized
+            range: 500
         };
 
-        const originalAtk = player.stats.atk;
-        player.stats.atk = originalAtk * effects.damageMultiplier!;
-
-        // Visual effect - targeting system
-        player.barrel.setTint(0xff0000);
-
-        const targetingSystem = this.scene.add.circle(
+        // Create shockwave effect
+        const shockwave = this.scene.add.circle(
             player.body.x,
             player.body.y,
-            30,
-            0xff0000,
-            0.3
+            50,
+            0xff2222,
+            0.6
         );
-        targetingSystem.setStrokeStyle(4, 0xff0000);
-        targetingSystem.setDepth(player.body.depth + 1);
+        shockwave.setStrokeStyle(6, 0xff0000);
 
+        // Animate shockwave expansion
         this.scene.tweens.add({
-            targets: targetingSystem,
-            rotation: Math.PI * 4,
-            duration: effects.duration,
-            onUpdate: () => {
-                if (player.body.active) {
-                    targetingSystem.setPosition(player.body.x, player.body.y);
-                }
-            }
+            targets: shockwave,
+            scaleX: 10,
+            scaleY: 10,
+            alpha: 0,
+            duration: 2000,
+            ease: 'Cubic.Out'
         });
 
-        this.scene.sound.play(AssetsAudioEnum.ATK_BUFF, { volume: 0.5 });
+        // Damage and stun all enemies
+        const gameScene = this.scene as any;
+        if (gameScene.gameManager && gameScene.gameManager.enemies) {
+            const enemyList = gameScene.gameManager.enemies.children ?
+                gameScene.gameManager.enemies.children.entries :
+                gameScene.gameManager.enemies;
+
+            enemyList.forEach((enemy: any) => {
+                if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
+                    // Random damage between 50-150
+                    const randomDamage = Math.floor(Math.random() * 101) + 50;
+                    
+                    if (enemy.takeDamage) {
+                        enemy.takeDamage(randomDamage);
+                    }
+
+                    // Stun effect - store original speed and disable movement
+                    if (enemy.stats && !enemy.isStunned) {
+                        enemy.isStunned = true;
+                        enemy.originalSpeed = enemy.stats.speed;
+                        enemy.stats.speed = 0;
+
+                        // Visual stun effect
+                        const stunEffect = this.scene.add.circle(
+                            enemy.body.x,
+                            enemy.body.y,
+                            20,
+                            0xffff00,
+                            0.5
+                        );
+                        stunEffect.setStrokeStyle(3, 0xffaa00);
+
+                        this.scene.tweens.add({
+                            targets: stunEffect,
+                            alpha: 0.2,
+                            scaleX: 1.5,
+                            scaleY: 1.5,
+                            duration: 500,
+                            yoyo: true,
+                            repeat: 5,
+                            onUpdate: () => {
+                                if (enemy.body && enemy.body.active) {
+                                    stunEffect.setPosition(enemy.body.x, enemy.body.y);
+                                }
+                            },
+                            onComplete: () => stunEffect.destroy()
+                        });
+
+                        // Remove stun after 3 seconds
+                        this.scene.time.delayedCall(3000, () => {
+                            if (enemy && enemy.stats && enemy.isStunned) {
+                                enemy.stats.speed = enemy.originalSpeed || 100;
+                                enemy.isStunned = false;
+                                delete enemy.originalSpeed;
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        // Screen shake effect
+        if (gameScene.cameras && gameScene.cameras.main) {
+            gameScene.cameras.main.shake(500, 0.02);
+        }
+
+        this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.7 });
 
         return {
             type: TankClassType.VERSATILE,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [targetingSystem],
-            onEnd: (player: Player) => {
-                player.stats.atk = originalAtk;
-                player.barrel.clearTint();
-                targetingSystem.destroy();
+            visualEffects: [shockwave],
+            onEnd: () => {
+                shockwave.destroy();
             }
         };
     }

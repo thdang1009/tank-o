@@ -162,22 +162,22 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
             fireRate: 500,
             rotationSpeed: 0.003
         },
-        skill1Name: 'Stealth Mode',
-        skill1Description: 'Becomes temporarily invisible to enemies and reveals hidden items.',
-        skill1Sound: AssetsAudioEnum.DISAPPEAR,
-        skill2Name: 'Scout Vision',
-        skill2Description: 'Reveals enemy positions and weak points for a short duration.',
-        skill2Sound: AssetsAudioEnum.SPEED_UP,
-        ultimateName: 'Tactical Strike',
-        ultimateDescription: 'Marks all enemies for increased damage and critical hits.',
-        ultimateSound: AssetsAudioEnum.ATK_BUFF,
+        skill1Name: 'Triple Rocket Barrage',
+        skill1Description: 'Launches 3 homing rockets that auto-target the nearest enemies, each dealing 50 damage.',
+        skill1Sound: AssetsAudioEnum.SHOOT,
+        skill2Name: 'Self Repair',
+        skill2Description: 'Heals the tank for a moderate amount of HP instantly.',
+        skill2Sound: AssetsAudioEnum.HEAL,
+        ultimateName: 'Devastation Strike',
+        ultimateDescription: 'Deals 50-150 random damage and stuns all enemies for 3 seconds.',
+        ultimateSound: AssetsAudioEnum.EXPLOSION,
         tankBodyAsset: AssetsEnum.TANK_BODY_BLUE,
         tankBarrelAsset: AssetsEnum.TANK_BLUE_BARREL_2,
         bulletAsset: AssetsEnum.BULLET_BLUE_1,
         // Backward compatibility
-        skillName: 'Stealth Mode',
-        skillDescription: 'Becomes temporarily invisible to enemies and reveals hidden items.',
-        skillSound: AssetsAudioEnum.DISAPPEAR
+        skillName: 'Triple Rocket Barrage',
+        skillDescription: 'Launches 3 homing rockets that auto-target the nearest enemies, each dealing 50 damage.',
+        skillSound: AssetsAudioEnum.SHOOT
     },
     
     [TankClassType.MAGE]: {
