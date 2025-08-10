@@ -376,14 +376,20 @@ export class SkillSystem {
             damageMultiplier: 2.0
         };
         
-        // Store original stats
+        // Store original stats (multiple places for safety)
         const originalAtk = player.stats.atk;
         const originalFireRate = player.stats.fireRate;
+        
+        // Also store on player object for safety
+        (player as any).rapidFireOriginalAtk = originalAtk;
+        (player as any).rapidFireOriginalFireRate = originalFireRate;
         
         // Apply buffs
         player.stats.atk = originalAtk * effects.damageMultiplier!;
         player.stats.fireRate = originalFireRate * 0.5; // Faster fire rate
         player.isRapidFire = true;
+        
+        console.log(`Rapid Fire activated - Original fire rate: ${originalFireRate}, New fire rate: ${player.stats.fireRate}`);
         
         // Visual effect - red barrel glow
         player.barrel.setTint(0xff4444);
@@ -421,128 +427,217 @@ export class SkillSystem {
             duration: effects.duration,
             effects: effects,
             visualEffects: [muzzleFlash],
+            player: player, // Store player reference
             onEnd: (player: Player) => {
-                player.stats.atk = originalAtk;
-                player.stats.fireRate = originalFireRate;
+                // Use stored values with fallbacks
+                const atkToRestore = (player as any).rapidFireOriginalAtk || originalAtk;
+                const fireRateToRestore = (player as any).rapidFireOriginalFireRate || originalFireRate;
+                
+                player.stats.atk = atkToRestore;
+                player.stats.fireRate = fireRateToRestore;
                 player.isRapidFire = false;
                 player.barrel.clearTint();
                 player.barrel.setScale(1);
                 muzzleFlash.destroy();
+                
+                // Clean up stored values
+                delete (player as any).rapidFireOriginalAtk;
+                delete (player as any).rapidFireOriginalFireRate;
+                
+                console.log(`Rapid Fire ended - Fire rate restored to: ${player.stats.fireRate}`);
             }
         };
     }
     
-    // Dealer Skill 2: Precision Shot
+    // Dealer Skill 2: Precision Shot - Piercing bullet that travels to map edge
     private dealerPrecisionShot(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
         const effects: SkillEffect = {
-            duration: 500,
-            damage: 300
+            duration: 2000, // Longer duration for travel time
+            damage: 250 // High damage per enemy hit
         };
         
-        const target = targetPosition || this.getBarrelTip(player);
         const angle = player.barrel.rotation;
         
-        // Create precision bullet
+        // Create a special piercing bullet using player's fire method but with modifications
+        const barrelTip = this.getBarrelTip(player);
+        
+        // Temporarily increase damage and create special bullet
+        const originalAtk = player.stats.atk;
+        player.stats.atk = effects.damage!;
+        
+        // Create the precision bullet using the existing bullet system
         const precisionBullet = this.scene.add.sprite(
-            player.barrel.x,
-            player.barrel.y,
+            barrelTip.x,
+            barrelTip.y,
             AssetsEnum.BULLET_RED_3
         );
-        precisionBullet.setScale(1.5);
+        precisionBullet.setScale(1.8);
         precisionBullet.setTint(0xffff00);
         precisionBullet.setDepth(10);
         precisionBullet.setRotation(angle);
         
-        // Move bullet rapidly in direction of barrel
-        const distance = 800;
-        const endX = player.barrel.x + Math.cos(angle) * distance;
-        const endY = player.barrel.y + Math.sin(angle) * distance;
+        // Enable physics for the bullet
+        this.scene.physics.world.enable(precisionBullet);
+        const bulletBody = precisionBullet.body as Phaser.Physics.Arcade.Body;
         
-        this.scene.tweens.add({
-            targets: precisionBullet,
-            x: endX,
-            y: endY,
-            duration: 300,
-            onComplete: () => {
-                precisionBullet.destroy();
+        // Set velocity to travel across the map
+        const speed = 600;
+        const velocityX = Math.cos(angle) * speed;
+        const velocityY = Math.sin(angle) * speed;
+        bulletBody.setVelocity(velocityX, velocityY);
+        
+        // Make it piercing - track hit enemies to prevent multiple hits
+        const hitEnemies = new Set();
+        
+        // Damage enemies it passes through
+        const damageInterval = this.scene.time.addEvent({
+            delay: 50, // Check for hits every 50ms
+            repeat: -1,
+            callback: () => {
+                const gameScene = this.scene as any;
+                
+                // Check for collisions with enemies
+                if (gameScene.gameManager && gameScene.gameManager.enemies) {
+                    gameScene.gameManager.enemies.forEach((enemy: any) => {
+                        if (enemy.isAlive && enemy.body && enemy.body.active && !hitEnemies.has(enemy)) {
+                            const distance = Phaser.Math.Distance.Between(
+                                precisionBullet.x, precisionBullet.y,
+                                enemy.body.x, enemy.body.y
+                            );
+                            if (distance <= 30) { // Hit detection radius
+                                enemy.takeDamage(effects.damage!);
+                                hitEnemies.add(enemy);
+                                console.log(`Precision Shot hit enemy for ${effects.damage!} damage!`);
+                                
+                                // Create hit effect
+                                const hitEffect = this.scene.add.circle(
+                                    enemy.body.x, enemy.body.y, 20, 0xffff00, 0.8
+                                );
+                                this.scene.tweens.add({
+                                    targets: hitEffect,
+                                    scale: 2,
+                                    alpha: 0,
+                                    duration: 300,
+                                    onComplete: () => hitEffect.destroy()
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                // Check if bullet is out of bounds (reached map edge)
+                const bounds = this.scene.physics.world.bounds;
+                if (precisionBullet.x < bounds.x || precisionBullet.x > bounds.x + bounds.width ||
+                    precisionBullet.y < bounds.y || precisionBullet.y > bounds.y + bounds.height) {
+                    damageInterval.destroy();
+                    precisionBullet.destroy();
+                }
             }
         });
         
+        // Restore original attack
+        player.stats.atk = originalAtk;
+        
         // Muzzle flash
         const muzzleFlash = this.scene.add.circle(
-            player.barrel.x + Math.cos(angle) * 30,
-            player.barrel.y + Math.sin(angle) * 30,
-            20,
-            0xffff00,
-            0.9
+            barrelTip.x, barrelTip.y, 25, 0xffff00, 0.9
         );
         
         this.scene.tweens.add({
             targets: muzzleFlash,
             alpha: 0,
             scale: 3,
-            duration: 200,
+            duration: 300,
             onComplete: () => muzzleFlash.destroy()
         });
         
-        this.scene.sound.play(AssetsAudioEnum.SHOOT, { volume: 0.8 });
+        this.scene.sound.play(AssetsAudioEnum.SHOOT, { volume: 1.0 });
         
         return {
             type: TankClassType.DEALER,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [precisionBullet, muzzleFlash]
+            visualEffects: [precisionBullet, muzzleFlash],
+            player: player,
+            onEnd: () => {
+                // Clean up if still active
+                if (damageInterval && !damageInterval.hasDispatched) {
+                    damageInterval.destroy();
+                }
+                if (precisionBullet && precisionBullet.active) {
+                    precisionBullet.destroy();
+                }
+            }
         };
     }
     
-    // Dealer Ultimate: Bullet Storm
+    // Dealer Ultimate: Bullet Storm - Fire 4 powerful bursts
     private dealerBulletStorm(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 2000,
-            damage: 50
+            damage: 150 // Increased damage per burst
         };
         
-        const bulletCount = 12;
-        const bullets: Phaser.GameObjects.Sprite[] = [];
+        const burstCount = 4;
+        const bulletsPerBurst = 5; // 5 bullets per burst for total of 20 bullets
+        let burstsFired = 0;
         
-        // Create bullets in all directions
-        for (let i = 0; i < bulletCount; i++) {
-            const angle = (i / bulletCount) * Math.PI * 2;
+        // Fire 4 bursts with delay between each
+        const fireNextBurst = () => {
+            if (burstsFired >= burstCount || !player.body.active) {
+                return;
+            }
             
-            this.scene.time.delayedCall(i * 50, () => {
-                const bullet = this.scene.add.sprite(
-                    player.body.x,
-                    player.body.y,
-                    AssetsEnum.BULLET_RED_2
-                );
-                bullet.setRotation(angle);
-                bullet.setTint(0xff8800);
+            // Fire a burst of bullets in different directions
+            for (let i = 0; i < bulletsPerBurst; i++) {
+                const spreadAngle = (i - 2) * 0.3; // Spread bullets in a cone
+                const bulletAngle = player.barrel.rotation + spreadAngle;
                 
-                // Move bullet outward
-                this.scene.tweens.add({
-                    targets: bullet,
-                    x: player.body.x + Math.cos(angle) * 600,
-                    y: player.body.y + Math.sin(angle) * 600,
-                    duration: 1000,
-                    onComplete: () => bullet.destroy()
-                });
-                
-                bullets.push(bullet);
-            });
-        }
+                // Fire actual bullet using player's fire method
+                if (player.fire) {
+                    // Temporarily boost damage for ultimate bullets
+                    const originalAtk = player.stats.atk;
+                    player.stats.atk = originalAtk + effects.damage!;
+                    
+                    // Override barrel rotation temporarily for spread
+                    const originalRotation = player.barrel.rotation;
+                    player.barrel.rotation = bulletAngle;
+                    
+                    player.fire();
+                    
+                    // Restore original values
+                    player.stats.atk = originalAtk;
+                    player.barrel.rotation = originalRotation;
+                }
+            }
+            
+            // Visual and audio effects for each burst
+            this.scene.cameras.main.shake(200, 0.005);
+            this.scene.sound.play(AssetsAudioEnum.SHOOT, { volume: 0.8 });
+            
+            burstsFired++;
+            
+            // Schedule next burst
+            if (burstsFired < burstCount) {
+                this.scene.time.delayedCall(500, fireNextBurst); // 500ms between bursts
+            }
+        };
         
-        // Screen shake for impact
-        this.scene.cameras.main.shake(500, 0.01);
+        // Start the first burst immediately
+        fireNextBurst();
         
-        this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.6 });
+        // Screen shake for ultimate activation
+        this.scene.cameras.main.shake(400, 0.02);
+        this.scene.sound.play(AssetsAudioEnum.ATK_BUFF, { volume: 0.7 });
         
         return {
             type: TankClassType.DEALER,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: bullets
+            visualEffects: [],
+            player: player
         };
     }
     
