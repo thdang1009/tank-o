@@ -226,11 +226,11 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
             fireRate: 300,
             rotationSpeed: 0.005
         },
-        skill1Name: 'Shadow Clone',
-        skill1Description: 'Creates decoy clones that confuse enemies.',
+        skill1Name: 'Cloak',
+        skill1Description: 'Briefly enters stealth, becoming invisible to enemies and gaining speed. Moving or attacking breaks stealth.',
         skill1Sound: AssetsAudioEnum.DISAPPEAR,
-        skill2Name: 'Smoke Screen',
-        skill2Description: 'Deploys smoke that blinds enemies and grants stealth.',
+        skill2Name: 'Smoke Bomb',
+        skill2Description: 'Throws a smoke bomb that creates a cloud, obscuring vision for enemies and breaking projectile targeting.',
         skill2Sound: AssetsAudioEnum.STEALTH_ACTIVATE,
         ultimateName: 'Assassination',
         ultimateDescription: 'Teleports behind target enemy and deals massive backstab damage.',
@@ -239,8 +239,8 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         tankBarrelAsset: AssetsEnum.TANK_DARK_BARREL_1,
         bulletAsset: AssetsEnum.BULLET_DARK_1,
         // Backward compatibility
-        skillName: 'Shadow Clone',
-        skillDescription: 'Creates decoy clones that confuse enemies.',
+        skillName: 'Cloak',
+        skillDescription: 'Briefly enters stealth, becoming invisible to enemies and gaining speed. Moving or attacking breaks stealth.',
         skillSound: AssetsAudioEnum.DISAPPEAR
     },
     

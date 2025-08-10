@@ -121,77 +121,139 @@ Each tank will have:
 
 ---
 
-## New Tank Brainstorming Ideas
+# Shaped Tank Ideas with Additional Concepts
 
-### New Damage Dealer Tanks
+Here are the previously brainstormed tanks, fleshed out with more details and three additional ideas for each type, providing a wider range of combat roles and playstyles.
+
+---
+
+## New Damage Dealer Tanks
 
 * **Artillery Tank (The "Long Shot")**
-    * **Concept:** Excels at long-range bombardment and area denial. Slow but devastating.
-    * **Skill 1: Mortar Barrage:** Fires a volley of shells at a targeted area, dealing splash damage after a short delay.
-    * **Skill 2: Incendiary Round:** Loads a special round that leaves a burning patch on impact, damaging enemies over time.
-    * **Ultimate: Orbital Strike:** Calls down a massive, high-damage orbital strike on a large targeted area after a significant delay. Only usable in boss rooms to clear adds or severely damage the boss.
-* **Flamethrower Tank (The "Inferno")**
-    * **Concept:** Close-range, sustained area damage with burning effects.
-    * **Skill 1: Napalm Spray:** Shoots a continuous cone of fire in front, dealing damage and applying a burn.
-    * **Skill 2: Fuel Burst:** Overloads its fuel lines, causing a short-range explosion around the tank, damaging and pushing back enemies.
-    * **Ultimate: Firestorm:** Unleashes a torrent of fire that creates a large, persistent fiery zone around the tank for several seconds, dealing continuous damage to anything inside. Great for boss encounters with multiple close-range targets.
-* **Sniper Tank (The "Marksman")**
-    * **Concept:** High single-target damage from extreme range, but vulnerable up close. Requires precision.
-    * **Skill 1: Piercing Shot:** Fires a high-velocity projectile that deals massive damage to the first enemy hit and minor damage to enemies in a line behind it.
-    * **Skill 2: Optical Camouflage:** Briefly cloaks the tank, making it invisible and boosting its next basic attack's damage. Breaking camouflage with an attack reveals the tank.
-    * **Ultimate: Critical Lock-On:** Locks onto a single target, revealing its weak points and allowing the Sniper Tank to fire an unmissable, extremely high-damage shot that ignores a portion of the target's defense. Perfect for finishing off bosses.
+    * **Concept:** Excels at long-range bombardment and area denial. Slow but devastating. Relies on prediction and positioning.
+    * **Skill 1: Mortar Barrage:** Fires a volley of shells at a targeted area, dealing splash damage after a short delay. Effective for hitting clustered enemies or objectives.
+    * **Skill 2: Incendiary Round:** Loads a special round that leaves a burning patch on impact, damaging enemies over time and creating a zone of control.
+    * **Ultimate: Orbital Strike:** Calls down a massive, high-damage orbital strike on a large targeted area after a significant delay. Only usable in boss rooms to clear adds, heavily damage the boss, or force positional changes.
+    * **New Ideas:**
+        * **Siege Tank (The "Bulwark Blast"):** *Concept:* Trades mobility for extreme burst damage from a fixed position. Skill 1: **Anchor Down** (roots tank, greatly increases damage output and defense). Skill 2: **Concussive Blast** (fires a high-impact shell that stuns enemies in a small area). Ultimate: **Annihilation Protocol** (fires a single, incredibly powerful, slow-moving projectile that explodes on impact, dealing colossal damage in a wide radius).
+        * **Chain Lightning Tank (The "Arc Discharge"):** *Concept:* Deals damage that chains between multiple enemies, excellent for groups. Skill 1: **Arc Shot** (basic attack arcs to up to 3 additional nearby enemies). Skill 2: **Overload Pulse** (emits a short-range pulse that applies a debuff, causing enemies to take increased damage from electrical attacks). Ultimate: **Thunderstorm** (creates a localized electrical storm that continuously damages and chains lightning between all enemies within a large area).
+        * **Corrosion Tank (The "Acid Spitter"):** *Concept:* Applies debuffs that degrade enemy armor and deal damage over time. Skill 1: **Acid Stream** (fires a continuous stream of corrosive liquid that applies stacks of "Corroded" debuff, reducing enemy defense). Skill 2: **Toxic Cloud** (deploys a lingering cloud of toxic gas that damages and slows enemies who enter it). Ultimate: **Meltdown** (targets a single enemy or boss, rapidly applying massive stacks of "Corroded" and dealing heavy burst damage as their armor disintegrates).
 
-### New Supporter Tanks
+* **Flamethrower Tank (The "Inferno")**
+    * **Concept:** Close-range, sustained area damage with burning effects. Excels in confined spaces or against swarms of enemies.
+    * **Skill 1: Napalm Spray:** Shoots a continuous cone of fire in front, dealing damage and applying a persistent burn effect.
+    * **Skill 2: Fuel Burst:** Overloads its fuel lines, causing a short-range explosion around the tank, damaging and pushing back enemies, creating space.
+    * **Ultimate: Firestorm:** Unleashes a torrent of fire that creates a large, persistent fiery zone around the tank for several seconds, dealing continuous damage to anything inside. Great for boss encounters with multiple close-range targets or for denying specific areas.
+    * **New Ideas:**
+        * **Sonic Tank (The "Resonator"):** *Concept:* Uses sound waves to damage enemies and manipulate their movement. Skill 1: **Shockwave Burst** (emits a directional cone of sound that damages and slightly pushes back enemies). Skill 2: **Vibration Pulse** (places a small field that causes enemies inside to move erratically or miss attacks). Ultimate: **Harmonic Collapse** (emits a high-frequency resonance that deals massive damage to all enemies in a large radius, with greater damage closer to the tank).
+        * **Drill Tank (The "Tunnel Terror"):** *Concept:* Melee-oriented, able to quickly traverse terrain and disrupt enemy formations. Skill 1: **Burrow Charge** (briefly burrows underground, becoming untargetable and moving quickly, surfacing to damage enemies). Skill 2: **Rubble Toss** (flings a cluster of debris in a small arc, dealing damage and creating temporary rough terrain). Ultimate: **Earthquake Slam** (emerges from underground with a powerful slam, damaging and knocking up all nearby enemies, leaving a crater that slows movement).
+        * **Bio-Toxin Tank (The "Plague Spreader"):** *Concept:* Inflicts debilitating poisons and debuffs on multiple enemies. Skill 1: **Toxic Goo** (fires a blob of goo that explodes, applying a stacking poison debuff over time to enemies in an area). Skill 2: **Spore Cloud** (releases a cloud of spores that blinds enemies, reducing their accuracy and vision range). Ultimate: **Epidemic Outbreak** (unleashes a potent airborne toxin, rapidly spreading a high-damage, long-duration poison to all enemies in a wide radius, which can then spread between affected enemies).
+
+* **Sniper Tank (The "Marksman")**
+    * **Concept:** High single-target damage from extreme range, but vulnerable up close. Requires precision and good line of sight.
+    * **Skill 1: Piercing Shot:** Fires a high-velocity projectile that deals massive damage to the first enemy hit and minor damage to enemies in a line behind it.
+    * **Skill 2: Optical Camouflage:** Briefly cloaks the tank, making it invisible and boosting its next basic attack's damage significantly. Breaking camouflage with an attack reveals the tank.
+    * **Ultimate: Critical Lock-On:** Locks onto a single target, revealing its weak points and allowing the Sniper Tank to fire an unmissable, extremely high-damage shot that ignores a portion of the target's defense. Perfect for finishing off bosses or eliminating high-priority targets.
+    * **New Ideas:**
+        * **Brawler Tank (The "Iron Fist"):** *Concept:* Close-range, high single-target burst damage using powerful melee attacks. Skill 1: **Rocket Punch** (launches a powerful, short-range projectile that deals heavy damage and knocks back a single enemy). Skill 2: **Adrenaline Rush** (temporarily increases attack speed and movement speed for a short duration). Ultimate: **Berserker Rage** (enters a frenzied state, gaining massive damage and life steal from basic attacks for a duration, but becomes rooted or slowed).
+        * **Laser Tank (The "Beamweaver"):** *Concept:* Deals continuous, focused damage in a straight line, capable of melting targets. Skill 1: **Precision Beam** (fires a narrow, continuous laser beam that deals damage to the first target hit). Skill 2: **Heat Sink Vent** (releases accumulated heat, damaging enemies in a cone behind the tank and reducing its own cooldowns). Ultimate: **Disintegration Ray** (channels a powerful, wide laser beam that sweeps across a large area, dealing extreme damage to all enemies caught in its path).
+        * **Phase Tank (The "Ghost Striker"):** *Concept:* Deals damage by briefly becoming intangible, bypassing defenses and position. Skill 1: **Phase Shift** (becomes briefly intangible, moving through enemies and projectiles, dealing minor damage upon reappearing). Skill 2: **Shadow Strike** (dashes a short distance through an enemy, dealing damage and applying a temporary defense reduction). Ultimate: **Void Anomaly** (creates a temporary portal that allows the tank to fire basic attacks or skills from a safe distance through the portal, making it immune to damage for a short period).
+
+---
+
+## New Supporter Tanks
 
 * **Repair Tank (The "Mechanic")**
-    * **Concept:** Focuses on single-target, direct healing, and defensive buffs.
+    * **Concept:** Focuses on single-target, direct healing, and defensive buffs for allies.
     * **Skill 1: Rapid Repair:** Instantly restores a significant amount of HP to a single targeted allied tank.
-    * **Skill 2: Overcharge Shield:** Places a temporary, strong shield on an allied tank that absorbs a large amount of damage.
-    * **Ultimate: Emergency Protocol:** Selects an area. All allied tanks within that area gain massive HP regeneration and damage reduction for a short duration. Crucial for surviving boss's burst phases.
-* **Disruption Tank (The "Saboteur")**
-    * **Concept:** Debuffs enemies, controls the battlefield, and weakens boss mechanics.
-    * **Skill 1: EMP Pulse:** Fires a pulse that briefly disables enemy skills (silence) or slows their attack speed in a small area.
-    * **Skill 2: Turret Jammer:** Places a small device that reduces the damage output or accuracy of nearby enemy turrets/minions.
-    * **Ultimate: System Overload:** Targets the boss, significantly reducing its attack damage and defense for a duration, or temporarily disabling a boss mechanic (e.g., stopping a damaging aura).
+    * **Skill 2: Overcharge Shield:** Places a temporary, strong shield on an allied tank that absorbs a large amount of damage, preventing bursts.
+    * **Ultimate: Emergency Protocol:** Selects an area. All allied tanks within that area gain massive HP regeneration and damage reduction for a short duration. Crucial for surviving boss's burst phases or turning the tide of a team fight.
+    * **New Ideas:**
+        * **Buff Tank (The "Field Commander"):** *Concept:* Enhances allies' offensive capabilities and provides crowd control immunity. Skill 1: **Morale Boost** (grants a temporary increase to an allied tank's attack damage and attack speed). Skill 2: **Defiance Aura** (creates a small aura around the tank that grants allies within it temporary immunity to crowd control effects). Ultimate: **Strategic Relay** (selects a target ally; that ally's basic attacks and skills deal bonus damage and have reduced cooldowns for a duration, becoming a focal point of attack).
+        * **Barrier Tank (The "Guardian"):** *Concept:* Creates impassable barriers and protective zones to control engagement range and shield allies. Skill 1: **Force Field Projector** (deploys a temporary, stationary force field that blocks all enemy projectiles). Skill 2: **Safeguard Drone** (sends out a drone that attaches to an ally, absorbing a small amount of damage for them before expiring). Ultimate: **Divine Wall** (summons a massive, impenetrable energy wall that spans across the map, blocking all movement and projectiles for a significant duration, splitting the battlefield).
+        * **Resource Tank (The "Logistics Expert"):** *Concept:* Provides allies with resources, ammo, or short-term buffs. Skill 1: **Ammunition Drop** (drops a pack that instantly refills an ally's primary weapon ammo or grants bonus charges for certain skills). Skill 2: **Energy Surge** (restores a small amount of ultimate charge or skill cooldown for a targeted ally). Ultimate: **Supply Line** (creates a persistent link between the Logistics Expert and nearby allies, causing them to rapidly regenerate health, energy, and reduced cooldowns as long as they remain in range).
 
-### New Tanker Tanks
+* **Disruption Tank (The "Saboteur")**
+    * **Concept:** Debuffs enemies, controls the battlefield, and weakens boss mechanics or key targets.
+    * **Skill 1: EMP Pulse:** Fires a pulse that briefly disables enemy skills (silence) or slows their attack speed in a small area, disrupting their offensive.
+    * **Skill 2: Turret Jammer:** Places a small device that reduces the damage output or accuracy of nearby enemy turrets/minions, making areas safer to push.
+    * **Ultimate: System Overload:** Targets the boss, significantly reducing its attack damage and defense for a duration, or temporarily disabling a boss mechanic (e.g., stopping a damaging aura, preventing a dangerous attack channel). This is crucial for mitigating boss threats.
+    * **New Ideas:**
+        * **Trap Tank (The "Ambush Master"):** *Concept:* Sets up hidden traps and mines to control enemy movement and initiate engagements. Skill 1: **Proximity Mine** (places a hidden mine that explodes when an enemy gets close, dealing damage and slowing). Skill 2: **Net Launcher** (fires a net that briefly roots a single enemy in place). Ultimate: **Minefield Deployment** (rapidly deploys a large field of mines in a targeted area, creating a hazardous zone for enemies, ideal for boss approach routes or chokepoints).
+        * **Pacifier Tank (The "Tranquilizer"):** *Concept:* Focuses on crowd control and rendering enemies harmless without directly damaging them. Skill 1: **Sleep Dart** (fires a dart that puts a single enemy to sleep for a short duration, making them untargetable but waking them on damage). Skill 2: **Calm Aura** (emits an aura that disarms enemies within range, preventing them from using basic attacks for a brief period). Ultimate: **Mass Tranquilize** (releases a widespread gas that puts all non-boss enemies in a large area to sleep for an extended duration, allowing allies to focus on the boss or escape).
+        * **Hex Tank (The "Curse Weaver"):** *Concept:* Applies powerful, long-lasting debuffs to enemies, making them vulnerable. Skill 1: **Weakening Curse** (curses a single enemy, reducing their overall damage output). Skill 2: **Vulnerability Hex** (applies a hex to an area, causing enemies within to take increased damage from all sources). Ultimate: **Doom Mark** (marks a single boss or powerful enemy, causing them to take massively increased damage from all sources for a short duration, making them extremely susceptible to burst damage from allies).
+
+---
+
+## New Tanker Tanks
 
 * **Juggernaut Tank (The "Wall")**
-    * **Concept:** Immobile but incredibly tough, designed to soak up massive damage and protect a specific area.
-    * **Skill 1: Entrench:** Roots the tank in place, drastically increasing its defense but making it unable to move. Can be canceled.
-    * **Skill 2: Taunt Protocol:** Forces all nearby enemies to attack the Juggernaut for a few seconds.
-    * **Ultimate: Immovable Object:** Becomes completely invulnerable to all damage and crowd control for a short duration, allowing it to stand strong against powerful boss attacks or clear pathways for allies.
-* **Spike Tank (The "Thorn")**
-    * **Concept:** Damages enemies that attack it, and can create defensive barriers.
-    * **Skill 1: Spiked Plating:** Activates a temporary buff that reflects a percentage of incoming damage back to attackers.
-    * **Skill 2: Barricade Drop:** Deploys a small, destructible barrier that blocks projectiles and movement.
-    * **Ultimate: Retribution Aura:** Emits a powerful aura for a duration, causing all enemies within range to take continuous damage and become slowed if they attack the Spike Tank. Good for punishing aggressive bosses.
+    * **Concept:** Immobile but incredibly tough, designed to soak up massive damage and protect a specific area. Ideal for holding choke points or tanking boss hits.
+    * **Skill 1: Entrench:** Roots the tank in place, drastically increasing its defense and regeneration but making it unable to move. Can be canceled to regain mobility.
+    * **Skill 2: Taunt Protocol:** Forces all nearby enemies to attack the Juggernaut for a few seconds, drawing aggro away from squishier allies.
+    * **Ultimate: Immovable Object:** Becomes completely invulnerable to all damage and crowd control for a short duration, allowing it to stand strong against powerful boss attacks, clear hazardous pathways for allies, or block projectiles.
+    * **New Ideas:**
+        * **Fortress Tank (The "Citadel"):** *Concept:* Creates temporary defensive structures for area control and cover. Skill 1: **Deployable Cover** (summons a small, destructible wall that provides cover and blocks projectiles). Skill 2: **Sentry Turret** (deploys a small, automated turret that attacks nearby enemies). Ultimate: **Defensive Bastion** (transforms into a stationary, highly fortified structure, gaining massive defense and providing a damage reduction aura to nearby allies, while firing a powerful primary weapon).
+        * **Reflector Tank (The "Mirror Shield"):** *Concept:* Absorbs damage and redirects it back to attackers or uses it to empower itself. Skill 1: **Kinetic Absorption** (activates a shield that absorbs a percentage of incoming damage, storing it as energy). Skill 2: **Energy Discharge** (releases stored energy in a burst, dealing damage to nearby enemies based on absorbed damage). Ultimate: **Retribution Field** (creates a large field around the tank where a high percentage of all damage taken by allies within the field is redirected back to the attackers).
+        * **Wrestler Tank (The "Grappler"):** *Concept:* Engages enemies in melee, grappling and repositioning them. Skill 1: **Grapple Hook** (fires a hook that pulls a single enemy to melee range, briefly stunning them). Skill 2: **Body Slam** (dashes forward a short distance, damaging and knocking down enemies in its path). Ultimate: **Pile Driver** (grapples a single target enemy or boss, lifts them up, and slams them into the ground, dealing massive damage and knocking up all enemies in a small radius around the impact point).
 
-### New All-rounder Tanks
+* **Spike Tank (The "Thorn")**
+    * **Concept:** Damages enemies that attack it, and can create defensive barriers. Punishes aggressive enemies.
+    * **Skill 1: Spiked Plating:** Activates a temporary buff that reflects a percentage of incoming damage back to attackers.
+    * **Skill 2: Barricade Drop:** Deploys a small, destructible barrier that blocks projectiles and movement, creating temporary cover or chokepoints.
+    * **Ultimate: Retribution Aura:** Emits a powerful aura for a duration, causing all enemies within range to take continuous damage and become slowed if they attack the Spike Tank. Good for punishing aggressive bosses or controlling a contested area.
+    * **New Ideas:**
+        * **Void Tank (The "Nullifier"):** *Concept:* Creates zones of anti-matter that negate enemy abilities and projectiles. Skill 1: **Null Field** (deploys a small, stationary field that absorbs enemy projectiles). Skill 2: **Ability Dampener** (fires a slow-moving projectile that creates a zone where enemy skill cooldowns are significantly increased). Ultimate: **Existential Rift** (opens a large, temporary rift that pulls enemies towards its center and prevents them from using any skills for its duration).
+        * **Crystal Tank (The "Gemstone Guard"):** *Concept:* Generates crystalline structures for defense and crowd control. Skill 1: **Crystal Spikes** (summons sharp crystal spikes from the ground, damaging and briefly snaring enemies in a line). Skill 2: **Prismatic Shield** (activates a personal shield that absorbs damage and, upon breaking, explodes into damaging crystal shards). Ultimate: **Crystalline Aegis** (summons a massive, shimmering crystal that provides invulnerability to all allies hiding behind it for a short duration, but the crystal itself can be destroyed).
+        * **Bio-Absorber Tank (The "Symbiote"):** *Concept:* Gains strength and healing by leeching from enemies or consuming fallen foes. Skill 1: **Life Drain** (sends out a short-range tendril that drains HP from a single enemy over time, healing the tank). Skill 2: **Bio-Barrier** (consumes a defeated enemy's remains to gain a temporary health shield). Ultimate: **Parasitic Overload** (attaches to a single boss or elite enemy, continuously draining their HP and granting the Tanker and nearby allies significant healing and a damage boost for the duration).
+
+---
+
+## New All-rounder Tanks
 
 * **Harvester Tank (The "Scavenger")**
-    * **Concept:** Gains strength by collecting resources or defeating enemies, becoming more powerful over time in a match.
-    * **Skill 1: Resource Vacuum:** Pulls all nearby dropped items or currency towards the tank.
-    * **Skill 2: Adaptive Plating:** Temporarily gains bonus defense based on the number of enemies recently defeated or items collected.
-    * **Ultimate: Assimilate Core:** Consumes a defeated elite enemy or a large resource node (in boss room) to gain a massive, permanent (for that match) boost to all stats.
-* **Teleport Tank (The "Blink")**
-    * **Concept:** High mobility and surprise attacks, but squishy.
-    * **Skill 1: Short Warp:** Teleports the tank a short distance in the direction it's facing.
-    * **Skill 2: Decoy Drop:** Leaves behind an illusionary copy of the tank that explodes after a few seconds or when destroyed, damaging nearby enemies.
-    * **Ultimate: Dimensional Rift:** Creates a rift that allows the tank and all nearby allies to instantly teleport to a targeted, visible location on the map (within limits). Perfect for flanking bosses or rapid redeployments in PvE/PvP.
+    * **Concept:** Gains strength by collecting resources or defeating enemies, becoming more powerful over time in a match. Encourages active engagement and resource management.
+    * **Skill 1: Resource Vacuum:** Pulls all nearby dropped items or currency towards the tank, streamlining collection.
+    * **Skill 2: Adaptive Plating:** Temporarily gains bonus defense based on the number of enemies recently defeated or items collected, rewarding aggression.
+    * **Ultimate: Assimilate Core:** Consumes a defeated elite enemy or a large resource node (in boss room) to gain a massive, permanent (for that match) boost to all stats, making it a late-game powerhouse.
+    * **New Ideas:**
+        * **Transformer Tank (The "Chameleon"):** *Concept:* Can temporarily switch between two distinct forms, offering tactical flexibility. Skill 1: **Mode Shift: Assault** (transforms into a damage-focused mode, gaining bonus attack damage but reduced defense). Skill 2: **Mode Shift: Defense** (transforms into a defense-focused mode, gaining bonus defense and regeneration but reduced damage). Ultimate: **Apex Form** (transforms into a hybrid, highly empowered form, gaining bonuses to all stats and enhanced basic attacks for a duration).
+        * **Orbital Control Tank (The "Satellite"):** *Concept:* Utilizes satellite-based abilities for both offense and support, controlling larger areas. Skill 1: **Targeting Beacon** (marks an enemy, causing them to take slightly increased damage from all sources for a short time). Skill 2: **Relay Boost** (designates an area; allies within gain a minor speed boost). Ultimate: **Global Scan & Strike** (reveals all enemies on the map for a short duration, then calls down a series of small, damaging bombardments across random enemy locations).
+        * **Elemental Shifter Tank (The "Conduit"):** *Concept:* Can rapidly switch its elemental damage type and apply varied effects. Skill 1: **Shift Element: Fire** (changes basic attacks to fire damage, applying burn). Skill 2: **Shift Element: Ice** (changes basic attacks to ice damage, applying slow). Ultimate: **Elemental Burst** (unleashes a devastating explosion of all three elemental types (fire, ice, lightning), dealing massive damage and applying corresponding debuffs to all enemies in a large area).
 
-### Unique/Niche Tanks
+* **Teleport Tank (The "Blink")**
+    * **Concept:** High mobility and surprise attacks, but squishy. Excels at hit-and-run tactics and flanking.
+    * **Skill 1: Short Warp:** Teleports the tank a short distance in the direction it's facing, useful for dodging or repositioning.
+    * **Skill 2: Decoy Drop:** Leaves behind an illusionary copy of the tank that explodes after a few seconds or when destroyed, damaging nearby enemies, creating a distraction.
+    * **Ultimate: Dimensional Rift:** Creates a rift that allows the tank and all nearby allies to instantly teleport to a targeted, visible location on the map (within limits). Perfect for flanking bosses, rapid redeployments in PvE/PvP, or emergency escapes.
+    * **New Ideas:**
+        * **Overdrive Tank (The "Velocity"):** *Concept:* Focuses on extreme bursts of speed and quick, impactful attacks. Skill 1: **Nitro Boost** (greatly increases movement speed for a short duration, leaving a damaging trail). Skill 2: **Momentum Strike** (dashes a short distance, dealing damage to enemies hit based on the tank's current speed). Ultimate: **Time Warp** (slows down time for all enemies in a large radius, while the tank moves at greatly increased speed, allowing for rapid attacks and repositioning).
+        * **Blink Striker (The "Assassin"):** *Concept:* Utilizes rapid, short-range teleportation to engage and disengage quickly, focusing on single-target burst. Skill 1: **Phase Stab** (teleports a very short distance directly behind an enemy, dealing bonus damage to their rear armor). Skill 2: **Smoke Vanish** (instantly disappears in a puff of smoke, becoming untargetable and leaving behind an enemy-disorienting cloud). Ultimate: **Execution Warp** (rapidly teleports between multiple marked enemies, dealing high damage to each, prioritizing low-health targets, before returning to the starting position).
+        * **Omni-Adapt Tank (The "Synthesizer"):** *Concept:* Can temporarily mimic the basic abilities of nearby allied or enemy tanks, offering unmatched versatility. Skill 1: **Mimic Ability** (targets a nearby tank, temporarily gaining access to their Skill 1). Skill 2: **Adaptive Shell** (gains a temporary bonus to its lowest stat based on the dominant tank class of nearby allies/enemies). Ultimate: **Paradigm Shift** (for a duration, gains access to the Skill 1 and Skill 2 of a nearby ally and a nearby enemy, allowing for complex tactical combinations).
+
+---
+
+## Unique/Niche Tanks
 
 * **Gravity Tank (The "Vortex")**
-    * **Concept:** Manipulates gravity to control enemy movement and projectiles.
-    * **Skill 1: Gravitational Pull:** Creates a small field that pulls enemies towards its center.
-    * **Skill 2: Anti-Gravity Field:** Creates a zone where enemy projectiles are significantly slowed or deflected.
+    * **Concept:** Manipulates gravity to control enemy movement and projectiles, creating tactical zones.
+    * **Skill 1: Gravitational Pull:** Creates a small field that pulls enemies towards its center, grouping them up for allies or pulling them off objectives.
+    * **Skill 2: Anti-Gravity Field:** Creates a zone where enemy projectiles are significantly slowed or deflected, providing temporary defensive cover.
     * **Ultimate: Black Hole Singularity:** Creates a powerful singularity that violently pulls all enemies in a large radius towards its center, dealing massive damage and holding them in place for a short duration. Devastating in boss rooms with many smaller enemies or for setting up massive damage combos.
+    * **New Ideas:**
+        * **Time Manipulator Tank (The "Chronomancer"):** *Concept:* Alters the flow of time for enemies and allies. Skill 1: **Temporal Slow** (fires a projectile that creates a zone, slowing enemy movement and attack speed). Skill 2: **Haste Field** (creates a small zone that speeds up allied movement and skill cooldowns). Ultimate: **Rewind Cascade** (briefly rewinds all allies within a large area to their position and health from a few seconds ago, negating recent damage or repositioning errors).
+        * **Illusion Tank (The "Phantom"):** *Concept:* Creates deceptive illusions and misdirection to confuse enemies. Skill 1: **Decoy Mirage** (creates a stationary, temporary illusion of the tank that draws enemy fire). Skill 2: **Vision Blur** (sends out a wave that briefly distorts the vision of enemies caught in it, causing them to see false targets or obscured paths). Ultimate: **Grand Illusion** (creates multiple moving illusions of the tank, each taking damage like the real tank, making it nearly impossible for enemies to target the real one for a short duration).
+        * **Magnetic Tank (The "Polarizer"):** *Concept:* Manipulates magnetic forces to pull/push metal objects and disarm enemies. Skill 1: **Magnetic Pull** (emits a pulse that pulls metallic enemies or dropped items towards the tank). Skill 2: **EMP Disarm** (fires a projectile that disarms enemies, forcing them to drop their primary weapons for a short time). Ultimate: **Magnetic Flux** (creates a powerful magnetic field that continuously pulls enemies towards a central point while simultaneously pushing away incoming projectiles, creating a deadly vortex).
+
 * **Swarm Tank (The "Hive")**
-    * **Concept:** Summons smaller robotic drones to assist in combat.
+    * **Concept:** Summons smaller robotic drones to assist in combat, providing continuous pressure and distraction.
     * **Skill 1: Mini-Drone Deploy:** Deploys 2-3 small, weak drones that auto-attack nearby enemies. Drones have a limited lifespan.
-    * **Skill 2: Drone Swarm:** Orders all active drones to focus fire on a single target, increasing their attack speed.
-    * **Ultimate: Replicating Drones:** Deploys a larger, more resilient drone that continuously spawns smaller attack drones for a duration. The ultimate drone can also self-destruct for large area damage.
+    * **Skill 2: Drone Swarm:** Orders all active drones to focus fire on a single target, increasing their attack speed and coordinating damage.
+    * **Ultimate: Replicating Drones:** Deploys a larger, more resilient drone that continuously spawns smaller attack drones for a duration. The ultimate drone can also self-destruct for large area damage upon expiring or being manually triggered.
+    * **New Ideas:**
+        * **Engineer Tank (The "Constructor"):** *Concept:* Deploys various automated turrets and defensive structures. Skill 1: **Auto-Turret Deploy** (places a small, stationary turret that fires at nearby enemies). Skill 2: **Barrier Emitter** (deploys a short-lived energy barrier that blocks projectiles). Ultimate: **Defensive Network** (deploys multiple powerful turrets and connects them with energy beams that damage enemies passing through, creating a fortified zone).
+        * **Parasite Tank (The "Leech"):** *Concept:* Attaches to enemies, draining their health/resources and converting them into buffs for itself or allies. Skill 1: **Adhesive Mine** (launches a sticky mine that attaches to an enemy, draining a small amount of their health over time). Skill 2: **Resource Siphon** (targets a defeated enemy or resource node, rapidly extracting its essence to gain a temporary buff or heal). Ultimate: **Host Infestation** (attaches to a single boss or elite enemy, continuously draining its health and applying a stacking debuff, while empowering the Parasite Tank and nearby allies with bonuses based on the drained health).
+        * **Artificer Tank (The "Inventor"):** *Concept:* Can dynamically combine and adapt its abilities by creating temporary, unique constructs. Skill 1: **Module Forge: Offense** (creates a temporary offensive module that enhances basic attacks). Skill 2: **Module Forge: Defense** (creates a temporary defensive module that provides a small shield). Ultimate: **Omni-Construct** (combines all active modules and a new special module into a powerful, temporary autonomous combat vehicle that fights alongside the Artificer, firing enhanced attacks and providing a defensive aura).
 
 ### 4.4. Tank Naming and Details
 

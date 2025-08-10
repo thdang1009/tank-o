@@ -1050,7 +1050,7 @@ export class SkillSystem {
     private activateSpySkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
             case 'skill1':
-                return this.spyShadowClone(player);
+                return this.spyCloak(player);
             case 'skill2':
                 return this.spySmokeScreen(player);
             case 'ultimate':
@@ -1058,63 +1058,92 @@ export class SkillSystem {
         }
     }
     
-    // Spy Skill 1: Shadow Clone - Create decoy clones
-    private spyShadowClone(player: Player): ActiveSkill {
+    // Spy Skill 1: Cloak - Enter stealth mode (invisibility only)
+    private spyCloak(player: Player): ActiveSkill {
         const effects: SkillEffect = {
-            duration: 6000
+            duration: 3000 // Just invisibility, no speed changes
         };
         
-        const clones: Phaser.GameObjects.Sprite[] = [];
-        const clonePositions = [
-            { x: player.body.x - 60, y: player.body.y - 30 },
-            { x: player.body.x + 60, y: player.body.y - 30 },
-            { x: player.body.x - 30, y: player.body.y + 60 }
-        ];
+        // Store original invisibility state for proper restoration
+        const originalInvisible = player.isInvisible || false;
         
-        clonePositions.forEach((pos, index) => {
-            // Create clone body
-            const cloneBody = this.scene.add.sprite(pos.x, pos.y, player.body.texture);
-            cloneBody.setScale(0.8);
-            cloneBody.setAlpha(0.6);
-            cloneBody.setTint(0x4444ff);
-            
-            // Create clone barrel
-            const cloneBarrel = this.scene.add.sprite(pos.x, pos.y, player.barrel.texture);
-            cloneBarrel.setScale(0.8);
-            cloneBarrel.setAlpha(0.6);
-            cloneBarrel.setTint(0x4444ff);
-            
-            clones.push(cloneBody, cloneBarrel);
-            
-            // Animate clone movement
-            this.scene.tweens.add({
-                targets: [cloneBody, cloneBarrel],
-                x: pos.x + (Math.random() - 0.5) * 200,
-                y: pos.y + (Math.random() - 0.5) * 200,
-                duration: 2000 + index * 500,
-                yoyo: true,
-                repeat: -1
-            });
-            
-            // Random rotation for barrel
-            this.scene.tweens.add({
-                targets: cloneBarrel,
-                rotation: Math.PI * 2,
-                duration: 3000,
-                repeat: -1
-            });
+        // Apply stealth effects (invisibility only)
+        player.isInvisible = true;
+        
+        // Store original invisibility state on player for safety
+        (player as any).cloakOriginalInvisible = originalInvisible;
+        
+        // Visual effect - partial transparency
+        player.body.setAlpha(0.3);
+        player.barrel.setAlpha(0.3);
+        
+        // Stealth particles
+        const stealthEffect = this.scene.add.particles(0, 0, AssetsEnum.BULLET_BLUE_1, {
+            scale: { start: 0.1, end: 0 },
+            alpha: { start: 0.5, end: 0 },
+            tint: 0x8888ff,
+            lifespan: 1000,
+            frequency: 100,
+            quantity: 3
         });
         
-        this.scene.sound.play(AssetsAudioEnum.DISAPPEAR, { volume: 0.4 });
+        stealthEffect.startFollow(player.body);
+        
+        // Create fallback timer to ensure effect ends even if skill system fails
+        const fallbackTimer = this.scene.time.delayedCall(effects.duration + 500, () => {
+            // Force reset if still in cloak mode
+            if (player.isInvisible) {
+                const speedToRestore = (player as any).cloakOriginalSpeed || originalStats.speed;
+                const invisibleToRestore = (player as any).cloakOriginalInvisible || false;
+                
+                player.stats.speed = speedToRestore;
+                player.isInvisible = invisibleToRestore;
+                player.body.setAlpha(1);
+                player.barrel.setAlpha(1);
+                
+                // Clean up stored values
+                delete (player as any).cloakOriginalSpeed;
+                delete (player as any).cloakOriginalInvisible;
+                
+                console.log(`FALLBACK: Cloak force reset - Speed: ${player.stats.speed}, Invisible: ${player.isInvisible}`);
+            }
+        });
+        
+        // Store fallback timer reference for cleanup
+        (player as any).cloakFallbackTimer = fallbackTimer;
+        
+        this.scene.sound.play(AssetsAudioEnum.DISAPPEAR, { volume: 0.3 });
         
         return {
             type: TankClassType.SPY,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: clones,
-            onEnd: () => {
-                clones.forEach(clone => clone.destroy());
+            visualEffects: [stealthEffect],
+            player: player, // Store player reference
+            onEnd: (player: Player) => {
+                // Use stored values with fallbacks
+                const speedToRestore = (player as any).cloakOriginalSpeed || originalStats.speed;
+                const invisibleToRestore = (player as any).cloakOriginalInvisible || false;
+                
+                player.stats.speed = speedToRestore;
+                player.isInvisible = invisibleToRestore;
+                player.body.setAlpha(1);
+                player.barrel.setAlpha(1);
+                stealthEffect.destroy();
+                
+                // Cancel fallback timer since we're properly ending
+                const fallbackTimer = (player as any).cloakFallbackTimer;
+                if (fallbackTimer) {
+                    fallbackTimer.destroy();
+                    delete (player as any).cloakFallbackTimer;
+                }
+                
+                // Clean up stored values
+                delete (player as any).cloakOriginalSpeed;
+                delete (player as any).cloakOriginalInvisible;
+                
+                console.log(`Cloak ended normally - Speed: ${player.stats.speed}, Invisible: ${player.isInvisible}`);
             }
         };
     }
@@ -1497,23 +1526,144 @@ export class SkillSystem {
         };
     }
     
+    // Spy Skill 2: Smoke Bomb - Creates obscuring smoke cloud
     private spySmokeScreen(player: Player): ActiveSkill {
-        const effects: SkillEffect = { duration: 5000 };
+        const effects: SkillEffect = { 
+            duration: 5000,
+            range: 100
+        };
         
-        const smoke = this.scene.add.circle(player.body.x, player.body.y, 80, 0x666666, 0.6);
-        smoke.setDepth(player.body.depth + 1);
+        // Throw smoke bomb projectile in front of player
+        const throwDistance = 120;
+        const throwX = player.body.x + Math.cos(player.barrel.rotation) * throwDistance;
+        const throwY = player.body.y + Math.sin(player.barrel.rotation) * throwDistance;
         
+        // Create smoke bomb projectile
+        const smokeBomb = this.scene.add.sprite(
+            player.body.x,
+            player.body.y,
+            AssetsEnum.BULLET_DARK_1
+        );
+        smokeBomb.setScale(0.8);
+        smokeBomb.setTint(0x444444);
+        smokeBomb.setDepth(10);
+        
+        // Animate throwing the smoke bomb
         this.scene.tweens.add({
-            targets: smoke,
-            scale: 1.5,
-            alpha: 0.3,
-            duration: effects.duration,
-            onUpdate: () => {
-                if (player.body.active) {
-                    smoke.setPosition(player.body.x, player.body.y);
-                }
-            },
-            onComplete: () => smoke.destroy()
+            targets: smokeBomb,
+            x: throwX,
+            y: throwY,
+            duration: 600,
+            ease: 'Power2',
+            onComplete: () => {
+                // Create smoke cloud at impact location
+                const smokeCloud = this.scene.add.circle(throwX, throwY, 20, 0x666666, 0.8);
+                smokeCloud.setDepth(player.body.depth + 1);
+                
+                // Create multiple smoke particles for better effect
+                const smokeParticles = this.scene.add.particles(throwX, throwY, AssetsEnum.BULLET_DARK_1, {
+                    scale: { start: 0.5, end: 1.2 },
+                    alpha: { start: 0.8, end: 0.3 },
+                    tint: [0x666666, 0x888888, 0x444444],
+                    lifespan: effects.duration,
+                    frequency: 150,
+                    quantity: 4,
+                    speed: { min: 20, max: 60 },
+                    angle: { min: 0, max: 360 }
+                });
+                
+                // Expand smoke cloud
+                this.scene.tweens.add({
+                    targets: smokeCloud,
+                    scale: effects.range! / 20,
+                    alpha: 0.4,
+                    duration: 1000,
+                    onComplete: () => {
+                        // Keep smoke cloud visible but reduce alpha
+                        this.scene.tweens.add({
+                            targets: smokeCloud,
+                            alpha: 0.2,
+                            duration: effects.duration - 1000,
+                            onComplete: () => smokeCloud.destroy()
+                        });
+                    }
+                });
+                
+                // In a full implementation, this would:
+                // - Break enemy targeting/line of sight
+                // - Hide players inside the smoke from enemies
+                // - Provide concealment for repositioning
+                
+                // Store original invisibility state
+                const wasInvisible = player.isInvisible;
+                
+                // Create smoke concealment effect
+                const checkSmokeInterval = this.scene.time.addEvent({
+                    delay: 200,
+                    repeat: Math.floor(effects.duration / 200),
+                    callback: () => {
+                        if (player.body && player.body.active) {
+                            const distanceToSmoke = Phaser.Math.Distance.Between(
+                                player.body.x, player.body.y,
+                                throwX, throwY
+                            );
+                            
+                            // If player is inside smoke cloud, apply concealment
+                            if (distanceToSmoke <= effects.range!) {
+                                if (!(player as any).inSmokeCloud) {
+                                    // Enter smoke - become invisible to enemies
+                                    (player as any).inSmokeCloud = true;
+                                    (player as any).wasInvisibleBeforeSmoke = player.isInvisible;
+                                    player.isInvisible = true;
+                                    player.body.setAlpha(0.4);
+                                    player.barrel.setAlpha(0.4);
+                                    console.log('Player entered smoke cloud - now invisible to enemies');
+                                }
+                            } else {
+                                // Outside smoke, restore original visibility state
+                                if ((player as any).inSmokeCloud) {
+                                    const wasInvisibleBefore = (player as any).wasInvisibleBeforeSmoke || false;
+                                    player.isInvisible = wasInvisibleBefore;
+                                    
+                                    // Only restore alpha if not invisible from other sources (like cloak)
+                                    if (!wasInvisibleBefore) {
+                                        player.body.setAlpha(1);
+                                        player.barrel.setAlpha(1);
+                                    }
+                                    
+                                    delete (player as any).inSmokeCloud;
+                                    delete (player as any).wasInvisibleBeforeSmoke;
+                                    console.log('Player left smoke cloud - visibility restored');
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Clean up smoke particles and effects
+                this.scene.time.delayedCall(effects.duration, () => {
+                    smokeParticles.destroy();
+                    checkSmokeInterval.destroy();
+                    
+                    // Restore player visibility if they were in smoke
+                    if ((player as any).inSmokeCloud) {
+                        const wasInvisibleBefore = (player as any).wasInvisibleBeforeSmoke || false;
+                        player.isInvisible = wasInvisibleBefore;
+                        
+                        // Only restore alpha if not invisible from other sources
+                        if (!wasInvisibleBefore) {
+                            player.body.setAlpha(1);
+                            player.barrel.setAlpha(1);
+                        }
+                        
+                        delete (player as any).inSmokeCloud;
+                        delete (player as any).wasInvisibleBeforeSmoke;
+                        console.log('Smoke cloud expired - player visibility restored');
+                    }
+                });
+                
+                smokeBomb.destroy();
+            }
         });
         
         this.scene.sound.play(AssetsAudioEnum.STEALTH_ACTIVATE, { volume: 0.4 });
@@ -1523,29 +1673,224 @@ export class SkillSystem {
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [smoke]
+            visualEffects: [smokeBomb], // Initial projectile, other effects are managed internally
+            onEnd: () => {
+                // Ensure player visibility is restored
+                if ((player as any).inSmokeCloud) {
+                    const wasInvisibleBefore = (player as any).wasInvisibleBeforeSmoke || false;
+                    player.isInvisible = wasInvisibleBefore;
+                    
+                    // Only restore alpha if not invisible from other sources
+                    if (!wasInvisibleBefore) {
+                        player.body.setAlpha(1);
+                        player.barrel.setAlpha(1);
+                    }
+                    
+                    delete (player as any).inSmokeCloud;
+                    delete (player as any).wasInvisibleBeforeSmoke;
+                }
+            }
         };
     }
     
+    // Spy Ultimate: Assassination - Teleport to enemy and debuff them
     private spyAssassination(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
-        const effects: SkillEffect = { duration: 1000, damage: 350 };
+        const effects: SkillEffect = { 
+            duration: 3000, // Duration of debuff effect
+            damage: 350,
+            damageReduction: -0.3, // Reduce enemy defense by 30%
+            range: 300 // Max teleport range
+        };
         
-        player.body.setAlpha(0.3);
-        player.barrel.setAlpha(0.3);
+        // Find nearest enemy to teleport to
+        let targetEnemy: any = null;
+        let closestDistance = effects.range!;
         
-        this.scene.time.delayedCall(500, () => {
+        const gameScene = this.scene as any;
+        if (gameScene.gameManager && gameScene.gameManager.enemies) {
+            const enemyList = gameScene.gameManager.enemies.children ? 
+                gameScene.gameManager.enemies.children.entries : 
+                gameScene.gameManager.enemies;
+                
+            enemyList.forEach((enemy: any) => {
+                if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
+                    const distance = Phaser.Math.Distance.Between(
+                        player.body.x, player.body.y,
+                        enemy.body.x, enemy.body.y
+                    );
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        targetEnemy = enemy;
+                    }
+                }
+            });
+        }
+        
+        if (!targetEnemy) {
+            // No valid target found, just do a short stealth
+            console.log('No enemy target found for assassination');
+            return this.spyCloak(player);
+        }
+        
+        // Store original position for escape
+        const originalX = player.body.x;
+        const originalY = player.body.y;
+        
+        // Phase 1: Disappear
+        player.body.setAlpha(0.1);
+        player.barrel.setAlpha(0.1);
+        player.isInvisible = true;
+        
+        // Phase 2: Teleport behind target (after 300ms)
+        this.scene.time.delayedCall(300, () => {
+            // Calculate position behind the target
+            const behindDistance = 60;
+            const targetAngle = targetEnemy.body.rotation || 0;
+            const teleportX = targetEnemy.body.x - Math.cos(targetAngle) * behindDistance;
+            const teleportY = targetEnemy.body.y - Math.sin(targetAngle) * behindDistance;
+            
+            // Teleport player
+            player.body.setPosition(teleportX, teleportY);
+            
+            // Face the target
+            const angleToTarget = Phaser.Math.Angle.Between(
+                player.body.x, player.body.y,
+                targetEnemy.body.x, targetEnemy.body.y
+            );
+            player.barrel.setRotation(angleToTarget);
+            
+            // Reappear with attack
             player.body.setAlpha(1);
             player.barrel.setAlpha(1);
+            player.isInvisible = false;
+            
+            // Apply damage to target
+            if (targetEnemy.takeDamage) {
+                targetEnemy.takeDamage(effects.damage!);
+            }
+            
+            // Apply debuff to target (reduce attack and defense)
+            if (targetEnemy.stats) {
+                if (!targetEnemy.originalDebuffStats) {
+                    targetEnemy.originalDebuffStats = {
+                        atk: targetEnemy.stats.atk,
+                        def: targetEnemy.stats.def
+                    };
+                }
+                
+                // Reduce enemy attack and defense by 50%
+                targetEnemy.stats.atk = targetEnemy.originalDebuffStats.atk * 0.5;
+                targetEnemy.stats.def = targetEnemy.originalDebuffStats.def * 0.5;
+                targetEnemy.isDebuffed = true;
+                
+                // Create debuff visual effect on enemy
+                const debuffEffect = this.scene.add.circle(
+                    targetEnemy.body.x, targetEnemy.body.y, 30, 0x8800ff, 0.6
+                );
+                debuffEffect.setStrokeStyle(3, 0x4400aa);
+                debuffEffect.setDepth(targetEnemy.body.depth + 1);
+                
+                this.scene.tweens.add({
+                    targets: debuffEffect,
+                    alpha: 0.3,
+                    scaleX: 1.5,
+                    scaleY: 1.5,
+                    duration: 1000,
+                    yoyo: true,
+                    repeat: Math.floor(effects.duration / 2000),
+                    onUpdate: () => {
+                        if (targetEnemy && targetEnemy.body && targetEnemy.body.active) {
+                            debuffEffect.setPosition(targetEnemy.body.x, targetEnemy.body.y);
+                        }
+                    },
+                    onComplete: () => {
+                        debuffEffect.destroy();
+                        
+                        // Remove debuff from enemy
+                        if (targetEnemy && targetEnemy.isDebuffed && targetEnemy.originalDebuffStats) {
+                            targetEnemy.stats.atk = targetEnemy.originalDebuffStats.atk;
+                            targetEnemy.stats.def = targetEnemy.originalDebuffStats.def;
+                            delete targetEnemy.originalDebuffStats;
+                            delete targetEnemy.isDebuffed;
+                            console.log('Assassination debuff expired');
+                        }
+                    }
+                });
+                
+                console.log(`Assassination hit ${targetEnemy.constructor.name} for ${effects.damage} damage and applied debuff`);
+            }
+            
+            // Create impact effect
+            const impactEffect = this.scene.add.circle(
+                targetEnemy.body.x, targetEnemy.body.y, 40, 0xff0000, 0.8
+            );
+            this.scene.tweens.add({
+                targets: impactEffect,
+                scale: 2,
+                alpha: 0,
+                duration: 400,
+                onComplete: () => impactEffect.destroy()
+            });
+            
+            // Phase 3: Quick escape after 800ms
+            this.scene.time.delayedCall(800, () => {
+                // Fade out
+                player.body.setAlpha(0.1);
+                player.barrel.setAlpha(0.1);
+                player.isInvisible = true;
+                
+                // Teleport to safe distance (200ms later)
+                this.scene.time.delayedCall(200, () => {
+                    // Calculate escape position (opposite direction from target)
+                    const escapeAngle = angleToTarget + Math.PI; // Opposite direction
+                    const escapeDistance = 150;
+                    const escapeX = player.body.x + Math.cos(escapeAngle) * escapeDistance;
+                    const escapeY = player.body.y + Math.sin(escapeAngle) * escapeDistance;
+                    
+                    // Ensure escape position is within bounds
+                    const bounds = this.scene.physics.world.bounds;
+                    const finalEscapeX = Phaser.Math.Clamp(escapeX, bounds.x + 50, bounds.x + bounds.width - 50);
+                    const finalEscapeY = Phaser.Math.Clamp(escapeY, bounds.y + 50, bounds.y + bounds.height - 50);
+                    
+                    player.body.setPosition(finalEscapeX, finalEscapeY);
+                    
+                    // Reappear
+                    player.body.setAlpha(1);
+                    player.barrel.setAlpha(1);
+                    player.isInvisible = false;
+                    
+                    console.log('Spy escaped after assassination');
+                });
+            });
         });
         
-        this.scene.sound.play(AssetsAudioEnum.DISAPPEAR, { volume: 0.6 });
+        // Screen flash for dramatic effect
+        this.scene.cameras.main.flash(200, 100, 0, 100, true);
+        this.scene.sound.play(AssetsAudioEnum.DISAPPEAR, { volume: 0.8 });
         
         return {
             type: TankClassType.SPY,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: []
+            visualEffects: [], // Effects are managed internally
+            player: player,
+            onEnd: () => {
+                // Ensure debuff is removed if skill ends early
+                if (targetEnemy && targetEnemy.isDebuffed && targetEnemy.originalDebuffStats) {
+                    targetEnemy.stats.atk = targetEnemy.originalDebuffStats.atk;
+                    targetEnemy.stats.def = targetEnemy.originalDebuffStats.def;
+                    delete targetEnemy.originalDebuffStats;
+                    delete targetEnemy.isDebuffed;
+                }
+                
+                // Ensure player is visible
+                if (player.body && player.barrel) {
+                    player.body.setAlpha(1);
+                    player.barrel.setAlpha(1);
+                    player.isInvisible = false;
+                }
+            }
         };
     }
     
