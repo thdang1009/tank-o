@@ -47,6 +47,7 @@ export class SkillSystem {
         const skill = this.activateSkill(player, skillType, targetPosition, skillSlot);
         if (skill) {
             this.activeSkills.set(playerId, skill);
+            console.log(`Skill activated: ${skillType} for player ${playerId}, duration: ${skill.duration}ms`);
             
             // Update last skill used time based on skill slot
             const now = Date.now();
@@ -369,27 +370,44 @@ export class SkillSystem {
         }
     }
     
-    // Dealer Skill 1: Rapid Fire - 200% damage and fire rate for 3 seconds
+    // Dealer Skill 1: Rapid Fire - Fast fire rate for 3 seconds (no damage boost)
     private dealerRapidFire(player: Player): ActiveSkill {
         const effects: SkillEffect = {
-            duration: 3000,
-            damageMultiplier: 2.0
+            duration: 3000
         };
         
-        // Store original stats (multiple places for safety)
-        const originalAtk = player.stats.atk;
+        // Store original stats (only fire rate needs to be changed)
         const originalFireRate = player.stats.fireRate;
         
         // Also store on player object for safety
-        (player as any).rapidFireOriginalAtk = originalAtk;
         (player as any).rapidFireOriginalFireRate = originalFireRate;
         
-        // Apply buffs
-        player.stats.atk = originalAtk * effects.damageMultiplier!;
+        // Apply only fire rate buff (no damage boost)
         player.stats.fireRate = originalFireRate * 0.5; // Faster fire rate
         player.isRapidFire = true;
         
         console.log(`Rapid Fire activated - Original fire rate: ${originalFireRate}, New fire rate: ${player.stats.fireRate}`);
+        
+        // Create a fallback timer to force reset even if skill system fails
+        const fallbackTimer = this.scene.time.delayedCall(effects.duration + 500, () => {
+            // Force reset if still in rapid fire mode
+            if (player.isRapidFire) {
+                const fireRateToRestore = (player as any).rapidFireOriginalFireRate || originalFireRate;
+                
+                player.stats.fireRate = fireRateToRestore;
+                player.isRapidFire = false;
+                player.barrel.clearTint();
+                player.barrel.setScale(1);
+                
+                // Clean up stored values
+                delete (player as any).rapidFireOriginalFireRate;
+                
+                console.log(`FALLBACK: Rapid Fire force reset - Fire rate: ${player.stats.fireRate}`);
+            }
+        });
+        
+        // Store fallback timer reference for cleanup
+        (player as any).rapidFireFallbackTimer = fallbackTimer;
         
         // Visual effect - red barrel glow
         player.barrel.setTint(0xff4444);
@@ -429,22 +447,26 @@ export class SkillSystem {
             visualEffects: [muzzleFlash],
             player: player, // Store player reference
             onEnd: (player: Player) => {
-                // Use stored values with fallbacks
-                const atkToRestore = (player as any).rapidFireOriginalAtk || originalAtk;
+                // Use stored values with fallbacks (only fire rate, no attack)
                 const fireRateToRestore = (player as any).rapidFireOriginalFireRate || originalFireRate;
                 
-                player.stats.atk = atkToRestore;
                 player.stats.fireRate = fireRateToRestore;
                 player.isRapidFire = false;
                 player.barrel.clearTint();
                 player.barrel.setScale(1);
                 muzzleFlash.destroy();
                 
+                // Cancel fallback timer since we're properly ending
+                const fallbackTimer = (player as any).rapidFireFallbackTimer;
+                if (fallbackTimer) {
+                    fallbackTimer.destroy();
+                    delete (player as any).rapidFireFallbackTimer;
+                }
+                
                 // Clean up stored values
-                delete (player as any).rapidFireOriginalAtk;
                 delete (player as any).rapidFireOriginalFireRate;
                 
-                console.log(`Rapid Fire ended - Fire rate restored to: ${player.stats.fireRate}`);
+                console.log(`Rapid Fire ended normally - Fire rate restored to: ${player.stats.fireRate}`);
             }
         };
     }
@@ -1607,6 +1629,7 @@ export class SkillSystem {
             if (currentTime >= skill.startTime + skill.duration) {
                 // End skill
                 if (skill.onEnd && skill.player) {
+                    console.log(`Skill ${skill.type} expiring for player ${playerId}`);
                     skill.onEnd(skill.player);
                 }
                 

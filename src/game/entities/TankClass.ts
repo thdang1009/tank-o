@@ -99,7 +99,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
             rotationSpeed: 0.004
         },
         skill1Name: 'Rapid Fire',
-        skill1Description: 'Temporarily increases damage by 200% for 3 seconds.',
+        skill1Description: 'Temporarily doubles fire rate for 3 seconds.',
         skill1Sound: AssetsAudioEnum.ATK_BUFF,
         skill2Name: 'Precision Shot',
         skill2Description: 'Fires a high-damage piercing bullet that ignores armor.',
@@ -112,7 +112,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         bulletAsset: AssetsEnum.BULLET_RED_1,
         // Backward compatibility
         skillName: 'Rapid Fire',
-        skillDescription: 'Temporarily increases damage by 200% for 3 seconds.',
+        skillDescription: 'Temporarily doubles fire rate for 3 seconds.',
         skillSound: AssetsAudioEnum.ATK_BUFF
     },
     
