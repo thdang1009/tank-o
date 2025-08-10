@@ -113,17 +113,17 @@ The game features 9 distinct tank types with unique abilities and playstyles:
    - *Heavy artillery specialist with explosive ordnance.*
    - **Skills:** Carpet Bomb, Mine Field, Nuclear Strike
    
-8. **Radar Scout** (Reconnaissance Role)
-   - *Fast reconnaissance tank with enhanced detection capabilities.*
-   - **Skills:** Radar Sweep, EMP Blast, Orbital Strike
+8. **Bomber** (Explosive Specialist Role)
+   - *Explosive specialist with area damage capabilities. Normal bullets cause minimal damage like mage.*
+   - **Skills:** Mine Field, Bomb Barrage, Super Bomb
    
 9. **Ice Tank (Blizzard)** (Crowd Control Role)
    - *Master of ice magic with slowing attacks and area control abilities.*
    - **Skills:** Frost Nova, Ice Wall, Absolute Zero
 
 **Role Categories:**
-* **Damage Dealers:** Damage Dealer, Mage, Demolition, Spy
-* **Supporters:** Supporter, Radar Scout  
+* **Damage Dealers:** Damage Dealer, Mage, Demolition, Spy, Bomber
+* **Supporters:** Supporter
 * **Tankers:** Bruiser, Ice Tank (Blizzard)
 * **All-rounders:** Versatile
 
@@ -191,10 +191,11 @@ Each tank has a complete skill system:
     * **Skill 1:** Cloak: Briefly enters stealth, becoming invisible to enemies. Moving or attacking breaks stealth.
     * **Skill 2:** Smoke Bomb: Throws a smoke bomb that creates a cloud, obscuring vision for enemies and breaking projectile targeting.
     * **Ultimate:** Sabotage: Instantly teleports to a targeted enemy tank or boss, applying a debuff that temporarily reduces their attack and defense, then allows the Spy Tank to escape quickly.
-* **Radar Scout Tank (Pathfinder):**
-    * **Skill 1:** Scan Pulse: Emits a pulse that reveals hidden items, traps, and invisible tanks in a wide radius.
-    * **Skill 2:** Recon Drone: Deploys a small, temporary drone that reveals a small area of the map, including enemy positions, for a short duration.
-    * **Ultimate:** Global Intel: Provides a brief, real-time minimap overlay of all enemy tanks and objectives across the entire current map for all allies.
+* **Bomber Tank:**
+    * **Stats:** Normal bullets cause 1 damage (like mage), moderate HP and speed.
+    * **Skill 1 (Q):** Mine Field: Places 3 explosive mines in front of the tank that detonate when enemies approach (14s cooldown).
+    * **Skill 2 (E):** Bomb Barrage: Throws 3 bombs in cursor direction, each dealing 60 AOE damage (6s cooldown).
+    * **Ultimate (R):** Super Bomb: Places a massive bomb at current position that explodes after 3 seconds, dealing 300 damage in 160 radius (50s cooldown).
 * **Ice Tank (Blizzard):**
     * **Passive:** All attacks or abilities apply a slow effect.
     * **Skill 1:** Frost Nova: Emits a burst of icy energy around the tank, damaging and heavily slowing all nearby enemies.

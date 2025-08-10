@@ -19,7 +19,7 @@ export enum TankClassType {
   MAGE = 'mage',
   SPY = 'spy',
   DEMOLITION = 'demolition',
-  RADAR_SCOUT = 'scout',
+  BOMBER = 'bomber',
   ICE_TANK = 'ice_tank'
 }
 

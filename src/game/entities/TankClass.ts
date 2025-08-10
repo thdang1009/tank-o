@@ -43,7 +43,7 @@ export function getSkillCooldown(classType: TankClassType, skillSlot: 'skill1' |
         [TankClassType.MAGE]: { skill1: 6000, skill2: 6000, ultimate: 50000 },
         [TankClassType.SPY]: { skill1: 10000, skill2: 8000, ultimate: 25000 },
         [TankClassType.DEMOLITION]: { skill1: 15000, skill2: 18000, ultimate: 60000 },
-        [TankClassType.RADAR_SCOUT]: { skill1: 5000, skill2: 7000, ultimate: 30000 },
+        [TankClassType.BOMBER]: { skill1: 14000, skill2: 6000, ultimate: 50000 },
         [TankClassType.ICE_TANK]: { skill1: 8000, skill2: 12000, ultimate: 40000 }
     };
     
@@ -276,36 +276,36 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         skillSound: AssetsAudioEnum.EXPLOSION
     },
     
-    [TankClassType.RADAR_SCOUT]: {
-        type: TankClassType.RADAR_SCOUT,
-        name: 'Radar Scout',
-        description: 'Fast reconnaissance tank with enhanced detection capabilities.',
+    [TankClassType.BOMBER]: {
+        type: TankClassType.BOMBER,
+        name: 'Bomber',
+        description: 'Explosive specialist with area damage capabilities. Normal bullets cause minimal damage like mage.',
         stats: {
             hp: 650,
             maxHp: 650,
             def: 4,
-            atk: 35,
+            atk: 1,
             spellPower: 0,
-            speed: 200,
-            fireRate: 400,
-            rotationSpeed: 0.004
+            speed: 150,
+            fireRate: 700,
+            rotationSpeed: 0.003
         },
-        skill1Name: 'Radar Sweep',
-        skill1Description: 'Reveals all enemies and items on the map for 10 seconds.',
-        skill1Sound: AssetsAudioEnum.RADAR_PING,
-        skill2Name: 'EMP Blast',
-        skill2Description: 'Disables enemy electronics and slows their movement.',
-        skill2Sound: AssetsAudioEnum.SPEED_UP,
-        ultimateName: 'Orbital Strike',
-        ultimateDescription: 'Calls in precise satellite bombardment on marked targets.',
-        ultimateSound: AssetsAudioEnum.ARTILLERY_WHISTLE,
-        tankBodyAsset: AssetsEnum.TANK_BODY_GREEN,
-        tankBarrelAsset: AssetsEnum.TANK_GREEN_BARREL_1,
-        bulletAsset: AssetsEnum.BULLET_GREEN_2,
+        skill1Name: 'Mine Field',
+        skill1Description: 'Places 3 explosive mines in front of the tank that detonate when enemies approach.',
+        skill1Sound: AssetsAudioEnum.ARTILLERY_WHISTLE,
+        skill2Name: 'Bomb Barrage',
+        skill2Description: 'Throws 3 bombs in cursor direction, each dealing 60 AOE damage.',
+        skill2Sound: AssetsAudioEnum.EXPLOSION,
+        ultimateName: 'Super Bomb',
+        ultimateDescription: 'Places a massive bomb at current position that explodes after 3 seconds, dealing 300 damage in 160 radius.',
+        ultimateSound: AssetsAudioEnum.EXPLOSION,
+        tankBodyAsset: AssetsEnum.TANK_BODY_DARK,
+        tankBarrelAsset: AssetsEnum.TANK_DARK_BARREL_2,
+        bulletAsset: AssetsEnum.BULLET_DARK_1,
         // Backward compatibility
-        skillName: 'Radar Sweep',
-        skillDescription: 'Reveals all enemies and items on the map for 10 seconds.',
-        skillSound: AssetsAudioEnum.SPEED_UP
+        skillName: 'Mine Field',
+        skillDescription: 'Places 3 explosive mines in front of the tank that detonate when enemies approach.',
+        skillSound: AssetsAudioEnum.ARTILLERY_WHISTLE
     },
     
     [TankClassType.ICE_TANK]: {

@@ -38,9 +38,10 @@ export class SkillSystem {
     useSkill(player: Player, skillType: TankClassType, targetPosition?: { x: number, y: number }, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1'): boolean {
         const playerId = player.playerLobbyId;
 
-        // Check if player already has an active skill
-        if (this.activeSkills.has(playerId)) {
-            console.log(`Player ${playerId} already has active skill`);
+        // Check if player already has this specific skill slot active
+        const skillKey = `${playerId}_${skillSlot}`;
+        if (this.activeSkills.has(skillKey)) {
+            console.log(`Player ${playerId} already has active ${skillSlot}`);
             return false;
         }
 
@@ -69,7 +70,7 @@ export class SkillSystem {
         // Activate the skill
         const skill = this.activateSkill(player, skillType, targetPosition, skillSlot);
         if (skill) {
-            this.activeSkills.set(playerId, skill);
+            this.activeSkills.set(skillKey, skill);
             console.log(`Skill activated: ${skillType} for player ${playerId}, duration: ${skill.duration}ms`);
 
             // Note: lastSkillXUsed time is already updated by Player.useSkill() before calling this method
@@ -102,8 +103,8 @@ export class SkillSystem {
                 return this.activateSpySkill(player, skillSlot, targetPosition);
             case TankClassType.DEMOLITION:
                 return this.activateDemolitionSkill(player, skillSlot, targetPosition);
-            case TankClassType.RADAR_SCOUT:
-                return this.activateRadarScoutSkill(player, skillSlot, targetPosition);
+            case TankClassType.BOMBER:
+                return this.activateBomberSkill(player, skillSlot, targetPosition);
             case TankClassType.ICE_TANK:
                 return this.activateIceTankSkill(player, skillSlot, targetPosition);
             default:
@@ -1398,86 +1399,111 @@ export class SkillSystem {
         };
     }
 
-    // Radar Scout skills
-    private activateRadarScoutSkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
+    // Bomber skills
+    private activateBomberSkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
             case 'skill1':
-                return this.radarScoutRadarSweep(player);
+                return this.bomberMineField(player);
             case 'skill2':
-                return this.radarScoutEMPBlast(player);
+                return this.bomberBombBarrage(player, targetPosition);
             case 'ultimate':
-                return this.radarScoutOrbitalStrike(player, targetPosition);
+                return this.bomberSuperBomb(player);
         }
     }
 
-    // Radar Scout Skill 1: Radar Sweep - Reveal all enemies and items
-    private radarScoutRadarSweep(player: Player): ActiveSkill {
-        const effects: SkillEffect = {
-            duration: 10000,
-            range: 800
-        };
+    // Bomber Skill 1: Mine Field - Places 3 explosive mines in front
+    private bomberMineField(player: Player): ActiveSkill {
+        const effects: SkillEffect = { duration: 15000, damage: 80, range: 60 };
+        const mines: Phaser.GameObjects.Sprite[] = [];
+        const mineCollisionChecks: Phaser.Time.TimerEvent[] = [];
 
-        // Create radar sweep animation
-        const radarSweep = this.scene.add.graphics();
-        radarSweep.lineStyle(3, 0x00ff00, 0.8);
-        radarSweep.fillStyle(0x00ff00, 0.1);
+        // Place 3 mines in front of the tank
+        for (let i = 0; i < 3; i++) {
+            const distance = 100 + (i * 60);
+            const mineX = player.body.x + Math.cos(player.barrel.rotation) * distance;
+            const mineY = player.body.y + Math.sin(player.barrel.rotation) * distance;
 
-        let sweepAngle = 0;
-        const sweepInterval = this.scene.time.addEvent({
-            delay: 50,
-            repeat: -1,
-            callback: () => {
-                radarSweep.clear();
-                radarSweep.lineStyle(3, 0x00ff00, 0.8);
-                radarSweep.fillStyle(0x00ff00, 0.1);
+            const mine = this.scene.add.sprite(mineX, mineY, AssetsEnum.BOMB);
+            mine.setScale(0.7);
+            mines.push(mine);
 
-                // Draw radar circle
-                radarSweep.strokeCircle(player.body.x, player.body.y, effects.range!);
+            // Enable physics for collision detection
+            this.scene.physics.world.enable(mine);
+            (mine.body as Phaser.Physics.Arcade.Body).setImmovable(true);
 
-                // Draw sweep line
-                const endX = player.body.x + Math.cos(sweepAngle) * effects.range!;
-                const endY = player.body.y + Math.sin(sweepAngle) * effects.range!;
-                radarSweep.lineBetween(player.body.x, player.body.y, endX, endY);
+            let mineExploded = false;
 
-                sweepAngle += 0.1;
-            }
-        });
+            const collisionCheck = this.scene.time.addEvent({
+                delay: 100,
+                loop: true,
+                callback: () => {
+                    if (mineExploded || !mine.active) return;
 
-        // In multiplayer, this would reveal hidden enemies
-        if (gameStateManager.isGameActive()) {
-            const remotePlayers = gameStateManager.getRemotePlayers();
-            remotePlayers.forEach(remotePlayer => {
-                // Create radar blip for each player
-                const blip = this.scene.add.circle(
-                    remotePlayer.position.x,
-                    remotePlayer.position.y,
-                    5,
-                    0xff0000,
-                    0.8
-                );
+                    // Check collision with AI enemies
+                    const gameScene = this.scene as any;
+                    if (gameScene.gameManager && gameScene.gameManager.enemies) {
+                        const enemyList = gameScene.gameManager.enemies.children ?
+                            gameScene.gameManager.enemies.children.entries :
+                            gameScene.gameManager.enemies;
 
-                this.scene.tweens.add({
-                    targets: blip,
-                    alpha: 0,
-                    duration: 1000,
-                    repeat: 9,
-                    yoyo: true,
-                    onComplete: () => blip.destroy()
-                });
+                        enemyList.forEach((enemy: any) => {
+                            if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
+                                const distance = Phaser.Math.Distance.Between(
+                                    mine.x, mine.y, enemy.body.x, enemy.body.y
+                                );
+                                if (distance <= 40) {
+                                    mineExploded = true;
+                                    this.createExplosion(mine.x, mine.y, effects.range!, effects.damage!);
+                                    mine.destroy();
+                                    collisionCheck.destroy();
+                                }
+                            }
+                        });
+                    }
+
+                    // Check collision with remote players
+                    if (gameStateManager.isGameActive()) {
+                        const remotePlayers = gameStateManager.getRemotePlayers();
+                        remotePlayers.forEach(remotePlayer => {
+                            const distance = Phaser.Math.Distance.Between(
+                                mine.x, mine.y,
+                                remotePlayer.position.x, remotePlayer.position.y
+                            );
+
+                            if (distance <= 40) {
+                                mineExploded = true;
+                                this.createExplosion(mine.x, mine.y, effects.range!, effects.damage!);
+                                mine.destroy();
+                                collisionCheck.destroy();
+                            }
+                        });
+                    }
+                }
+            });
+
+            mineCollisionChecks.push(collisionCheck);
+
+            // Auto explode after 15 seconds
+            this.scene.time.delayedCall(15000, () => {
+                if (!mineExploded && mine.active) {
+                    this.createExplosion(mine.x, mine.y, effects.range!, effects.damage!);
+                    mine.destroy();
+                    collisionCheck.destroy();
+                }
             });
         }
 
-        this.scene.sound.play(AssetsAudioEnum.SPEED_UP, { volume: 0.6 });
+        this.scene.sound.play(AssetsAudioEnum.ARTILLERY_WHISTLE, { volume: 0.6 });
 
         return {
-            type: TankClassType.RADAR_SCOUT,
+            type: TankClassType.BOMBER,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [radarSweep],
+            visualEffects: mines,
             onEnd: () => {
-                sweepInterval.destroy();
-                radarSweep.destroy();
+                mines.forEach(mine => mine.destroy());
+                mineCollisionChecks.forEach(check => check.destroy());
             }
         };
     }
@@ -2451,46 +2477,82 @@ export class SkillSystem {
         };
     }
 
-    private radarScoutEMPBlast(player: Player): ActiveSkill {
-        const effects: SkillEffect = { duration: 3000, range: 150 };
+    private bomberBombBarrage(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
+        const effects: SkillEffect = { duration: 2000, damage: 60, range: 80 };
+        const bombs: Phaser.GameObjects.Sprite[] = [];
+        
+        // Default to cursor/barrel direction if no target position
+        const target = targetPosition || {
+            x: player.body.x + Math.cos(player.barrel.rotation) * 200,
+            y: player.body.y + Math.sin(player.barrel.rotation) * 200
+        };
 
-        const emp = this.scene.add.circle(player.body.x, player.body.y, 10, 0x00aaff, 0.7);
+        // Throw 3 bombs in the target direction
+        for (let i = 0; i < 3; i++) {
+            const spread = (i - 1) * 50; // Spread bombs apart
+            const bombX = target.x + spread * Math.cos(player.barrel.rotation + Math.PI/2);
+            const bombY = target.y + spread * Math.sin(player.barrel.rotation + Math.PI/2);
 
-        this.scene.tweens.add({
-            targets: emp,
-            scale: effects.range! / 10,
-            alpha: 0,
-            duration: 1000,
-            onComplete: () => emp.destroy()
-        });
+            const bomb = this.scene.add.sprite(bombX, bombY, AssetsEnum.BOMB);
+            bomb.setScale(0.8);
+            bombs.push(bomb);
 
-        this.scene.sound.play(AssetsAudioEnum.SPEED_UP, { volume: 0.5 });
+            // Each bomb explodes with a slight delay
+            this.scene.time.delayedCall(500 + (i * 200), () => {
+                this.createExplosion(bombX, bombY, effects.range!, effects.damage!);
+                bomb.destroy();
+            });
+        }
+
+        this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.6 });
 
         return {
-            type: TankClassType.RADAR_SCOUT,
+            type: TankClassType.BOMBER,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [emp]
+            visualEffects: bombs
         };
     }
 
-    private radarScoutOrbitalStrike(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
-        const effects: SkillEffect = { duration: 3000, damage: 250 };
-        const target = targetPosition || { x: player.body.x, y: player.body.y - 200 };
+    private bomberSuperBomb(player: Player): ActiveSkill {
+        const effects: SkillEffect = { duration: 3500, damage: 300, range: 160 };
+        
+        // Place the super bomb at current tank position
+        const bombX = player.body.x;
+        const bombY = player.body.y;
 
-        this.scene.time.delayedCall(2000, () => {
-            this.createExplosion(target.x, target.y, 80, effects.damage!);
+        const superBomb = this.scene.add.sprite(bombX, bombY, AssetsEnum.BOMB);
+        superBomb.setScale(1.5);
+        
+        // Create warning indicator
+        const warningCircle = this.scene.add.circle(bombX, bombY, effects.range!, 0xff0000, 0.3);
+        warningCircle.setStrokeStyle(3, 0xff0000);
+
+        // Pulsing animation for warning
+        this.scene.tweens.add({
+            targets: [superBomb, warningCircle],
+            scale: 1.2,
+            duration: 500,
+            repeat: 5,
+            yoyo: true
         });
 
-        this.scene.sound.play(AssetsAudioEnum.ARTILLERY_WHISTLE, { volume: 0.7 });
+        // Explode after 3 seconds
+        this.scene.time.delayedCall(3000, () => {
+            this.createExplosion(bombX, bombY, effects.range!, effects.damage!);
+            superBomb.destroy();
+            warningCircle.destroy();
+        });
+
+        this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.8 });
 
         return {
-            type: TankClassType.RADAR_SCOUT,
+            type: TankClassType.BOMBER,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: []
+            visualEffects: [superBomb, warningCircle]
         };
     }
 
@@ -2853,12 +2915,12 @@ export class SkillSystem {
         const currentTime = Date.now();
         const expiredSkills: string[] = [];
 
-        this.activeSkills.forEach((skill, playerId) => {
+        this.activeSkills.forEach((skill, skillKey) => {
             // Check if skill has expired
             if (currentTime >= skill.startTime + skill.duration) {
                 // End skill
                 if (skill.onEnd && skill.player) {
-                    console.log(`Skill ${skill.type} expiring for player ${playerId}`);
+                    console.log(`Skill ${skill.type} expiring for skillKey ${skillKey}`);
                     skill.onEnd(skill.player);
                 }
 
@@ -2869,7 +2931,7 @@ export class SkillSystem {
                     }
                 });
 
-                expiredSkills.push(playerId);
+                expiredSkills.push(skillKey);
             } else {
                 // Update skill if needed
                 if (skill.onUpdate && skill.player) {
@@ -2879,8 +2941,8 @@ export class SkillSystem {
         });
 
         // Remove expired skills
-        expiredSkills.forEach(playerId => {
-            this.activeSkills.delete(playerId);
+        expiredSkills.forEach(skillKey => {
+            this.activeSkills.delete(skillKey);
         });
     }
 
@@ -2901,7 +2963,7 @@ export class SkillSystem {
             [TankClassType.MAGE]: { skill1: 6000, skill2: 6000, ultimate: 50000 },
             [TankClassType.SPY]: { skill1: 10000, skill2: 8000, ultimate: 25000 },
             [TankClassType.DEMOLITION]: { skill1: 15000, skill2: 18000, ultimate: 60000 },
-            [TankClassType.RADAR_SCOUT]: { skill1: 5000, skill2: 7000, ultimate: 30000 },
+            [TankClassType.BOMBER]: { skill1: 14000, skill2: 6000, ultimate: 50000 },
             [TankClassType.ICE_TANK]: { skill1: 8000, skill2: 12000, ultimate: 40000 }
         };
 
@@ -3061,30 +3123,68 @@ export class SkillSystem {
         return Math.max(0, cooldown - elapsed);
     }
 
-    // Check if player has an active skill
+    // Check if player has any active skill
     hasActiveSkill(playerId: string): boolean {
-        return this.activeSkills.has(playerId);
+        for (const skillKey of this.activeSkills.keys()) {
+            if (skillKey.startsWith(`${playerId}_`)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    // Force end a skill
-    endSkill(playerId: string): boolean {
-        const skill = this.activeSkills.get(playerId);
-        if (skill) {
-            if (skill.onEnd) {
-                const player = this.findPlayerById(playerId);
-                if (player) {
-                    skill.onEnd(player);
+    // Check if player has a specific skill slot active
+    hasActiveSkillSlot(playerId: string, skillSlot: 'skill1' | 'skill2' | 'ultimate'): boolean {
+        const skillKey = `${playerId}_${skillSlot}`;
+        return this.activeSkills.has(skillKey);
+    }
+
+    // Force end a specific skill slot
+    endSkill(playerId: string, skillSlot?: 'skill1' | 'skill2' | 'ultimate'): boolean {
+        if (skillSlot) {
+            // End specific skill slot
+            const skillKey = `${playerId}_${skillSlot}`;
+            const skill = this.activeSkills.get(skillKey);
+            if (skill) {
+                if (skill.onEnd) {
+                    const player = this.findPlayerById(playerId);
+                    if (player) {
+                        skill.onEnd(player);
+                    }
+                }
+
+                skill.visualEffects?.forEach(effect => {
+                    if (effect.active) {
+                        effect.destroy();
+                    }
+                });
+
+                this.activeSkills.delete(skillKey);
+                return true;
+            }
+        } else {
+            // End all skills for player (backward compatibility)
+            let ended = false;
+            for (const [skillKey, skill] of this.activeSkills.entries()) {
+                if (skillKey.startsWith(`${playerId}_`)) {
+                    if (skill.onEnd) {
+                        const player = this.findPlayerById(playerId);
+                        if (player) {
+                            skill.onEnd(player);
+                        }
+                    }
+
+                    skill.visualEffects?.forEach(effect => {
+                        if (effect.active) {
+                            effect.destroy();
+                        }
+                    });
+
+                    this.activeSkills.delete(skillKey);
+                    ended = true;
                 }
             }
-
-            skill.visualEffects?.forEach(effect => {
-                if (effect.active) {
-                    effect.destroy();
-                }
-            });
-
-            this.activeSkills.delete(playerId);
-            return true;
+            return ended;
         }
         return false;
     }
