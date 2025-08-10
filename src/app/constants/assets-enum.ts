@@ -197,6 +197,8 @@ export enum AssetsEnum {
     FIREBALL_PROJECTILE = 'fireball_projectile',
     METEOR = 'meteor',
     RADAR_SWEEP = 'radar',
+    BOMB = 'bomb',
+    NUCLEAR = 'nuclear',
 }
 
 export enum AssetsAudioEnum {

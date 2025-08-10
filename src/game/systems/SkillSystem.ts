@@ -1232,7 +1232,7 @@ export class SkillSystem {
     private demolitionCarpetBomb(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
         const effects: SkillEffect = {
             duration: 3000,
-            damage: 150,
+            damage: 200,
             range: 200
         };
 
@@ -2211,8 +2211,9 @@ export class SkillSystem {
     }
 
     private demolitionMineField(player: Player): ActiveSkill {
-        const effects: SkillEffect = { duration: 2000 };
+        const effects: SkillEffect = { duration: 10000, damage: 150, range: 80 };
         const mines: Phaser.GameObjects.Sprite[] = [];
+        const mineCollisionChecks: Phaser.Time.TimerEvent[] = [];
 
         for (let i = 0; i < 6; i++) {
             const angle = (i / 6) * Math.PI * 2;
@@ -2220,10 +2221,56 @@ export class SkillSystem {
             const mineX = player.body.x + Math.cos(angle) * distance;
             const mineY = player.body.y + Math.sin(angle) * distance;
 
-            const mine = this.scene.add.sprite(mineX, mineY, AssetsEnum.BULLET_RED_1);
-            mine.setTint(0x444444);
-            mine.setScale(0.5);
+            const mine = this.scene.add.sprite(mineX, mineY, AssetsEnum.BOMB);
+            mine.setScale(0.7);
             mines.push(mine);
+
+            // Enable physics for collision detection
+            this.scene.physics.world.enable(mine);
+            (mine.body as Phaser.Physics.Arcade.Body).setImmovable(true);
+
+            let mineExploded = false;
+
+            // Collision detection with enemies
+            const collisionCheck = this.scene.time.addEvent({
+                delay: 100,
+                loop: true,
+                callback: () => {
+                    if (mineExploded || !mine.active) return;
+
+                    const gameScene = this.scene as any;
+                    if (gameScene.gameManager && gameScene.gameManager.enemies) {
+                        const enemyList = gameScene.gameManager.enemies.children ?
+                            gameScene.gameManager.enemies.children.entries :
+                            gameScene.gameManager.enemies;
+
+                        enemyList.forEach((enemy: any) => {
+                            if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
+                                const distance = Phaser.Math.Distance.Between(
+                                    mine.x, mine.y, enemy.body.x, enemy.body.y
+                                );
+                                if (distance <= 30) { // Close collision distance
+                                    mineExploded = true;
+                                    this.createExplosion(mine.x, mine.y, effects.range!, effects.damage!);
+                                    mine.destroy();
+                                    collisionCheck.destroy();
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+
+            mineCollisionChecks.push(collisionCheck);
+
+            // Auto explode after 10 seconds
+            this.scene.time.delayedCall(10000, () => {
+                if (!mineExploded && mine.active) {
+                    this.createExplosion(mine.x, mine.y, effects.range!, effects.damage!);
+                    mine.destroy();
+                }
+                collisionCheck.destroy();
+            });
         }
 
         this.scene.sound.play(AssetsAudioEnum.ARTILLERY_WHISTLE, { volume: 0.5 });
@@ -2235,18 +2282,49 @@ export class SkillSystem {
             effects: effects,
             visualEffects: mines,
             onEnd: () => {
-                mines.forEach(mine => mine.destroy());
+                mines.forEach(mine => {
+                    if (mine.active) mine.destroy();
+                });
+                mineCollisionChecks.forEach(check => {
+                    if (check.hasDispatched === false) check.destroy();
+                });
             }
         };
     }
 
     private demolitionNuclearStrike(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
-        const effects: SkillEffect = { duration: 5000, damage: 600, range: 250 };
+        // Map-wide damage range - use entire screen dimensions
+        const mapWidth = this.scene.cameras.main.width;
+        const mapHeight = this.scene.cameras.main.height;
+        const mapWideRange = Math.max(mapWidth, mapHeight) * 2; // Ensure entire map coverage
+        
+        const effects: SkillEffect = { duration: 5000, damage: 800, range: mapWideRange };
         const target = targetPosition || { x: player.body.x, y: player.body.y - 300 };
 
+        // Create nuclear warning sprite
+        const nuclear = this.scene.add.sprite(target.x, target.y, AssetsEnum.NUCLEAR);
+        nuclear.setScale(1.5);
+        nuclear.setAlpha(0.8);
+        
+        // Pulsing warning effect
+        this.scene.tweens.add({
+            targets: nuclear,
+            scale: nuclear.scaleX * 1.2,
+            yoyo: true,
+            repeat: 6,
+            duration: 250,
+            onComplete: () => nuclear.destroy()
+        });
+
         this.scene.time.delayedCall(3000, () => {
-            this.createExplosion(target.x, target.y, effects.range!, effects.damage!);
-            this.scene.cameras.main.flash(1000, 255, 255, 255, true);
+            // Create massive explosion at center of map for visual effect
+            const centerX = this.scene.cameras.main.width / 2;
+            const centerY = this.scene.cameras.main.height / 2;
+            this.createExplosion(centerX, centerY, 400, effects.damage!);
+            
+            // Additional visual effects for map-wide devastation
+            this.scene.cameras.main.flash(2000, 255, 255, 255, true);
+            this.scene.cameras.main.shake(1000, 0.02);
         });
 
         this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 1.0 });
@@ -2256,7 +2334,7 @@ export class SkillSystem {
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: []
+            visualEffects: [nuclear]
         };
     }
 
