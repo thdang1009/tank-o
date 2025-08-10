@@ -23,6 +23,7 @@ export interface ActiveSkill {
     visualEffects?: Phaser.GameObjects.GameObject[];
     onUpdate?: (player: Player, deltaTime: number) => void;
     onEnd?: (player: Player) => void;
+    player?: Player; // Store reference to player for easier access
 }
 
 export class SkillSystem {
@@ -104,7 +105,7 @@ export class SkillSystem {
             case 'skill1':
                 return this.bruiserShieldWall(player);
             case 'skill2':
-                return this.bruiserTaunt(player);
+                return this.bruiserShockWave(player);
             case 'ultimate':
                 return this.bruiserFortressMode(player);
         }
@@ -156,6 +157,7 @@ export class SkillSystem {
             duration: effects.duration,
             effects: effects,
             visualEffects: [shieldCircle],
+            player: player, // Store player reference
             onEnd: (player: Player) => {
                 player.damageReduction = 0;
                 shieldCircle.destroy();
@@ -163,52 +165,117 @@ export class SkillSystem {
         };
     }
     
-    // Bruiser Skill 2: Taunt
-    private bruiserTaunt(player: Player): ActiveSkill {
+    // Bruiser Skill 2: Shockwave Slam
+    private bruiserShockWave(player: Player): ActiveSkill {
         const effects: SkillEffect = {
-            duration: 6000,
-            damageReduction: 0.25
+            duration: 3000, // Extended for slow effect
+            damage: 100,
+            range: 150
         };
         
-        player.damageReduction = effects.damageReduction!;
-        
-        // Visual effect - intimidating aura
-        const tauntAura = this.scene.add.circle(
+        // Create expanding shockwave visual
+        const shockwave = this.scene.add.circle(
             player.body.x,
             player.body.y,
-            60,
-            0xff4444,
-            0.3
+            20,
+            0xffaa00,
+            0.6
         );
-        tauntAura.setStrokeStyle(6, 0xff0000);
-        tauntAura.setDepth(player.body.depth + 1);
+        shockwave.setStrokeStyle(8, 0xff4400);
+        shockwave.setDepth(player.body.depth + 1);
         
+        // Expand shockwave (faster animation than slow duration)
         this.scene.tweens.add({
-            targets: tauntAura,
-            scaleX: 1.5,
-            scaleY: 1.5,
-            alpha: 0.5,
-            duration: 1500,
-            yoyo: true,
-            repeat: -1,
-            onUpdate: () => {
-                if (player.body.active) {
-                    tauntAura.setPosition(player.body.x, player.body.y);
-                }
+            targets: shockwave,
+            scale: effects.range! / 20,
+            alpha: 0,
+            duration: 800, // Fast visual expansion
+            onComplete: () => {
+                shockwave.destroy();
             }
         });
         
-        this.scene.sound.play(AssetsAudioEnum.DEF_BUFF, { volume: 0.5 });
+        // Screen shake for impact
+        this.scene.cameras.main.shake(300, 0.01);
+        
+        // Sound effect
+        this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.6 });
+        
+        // Damage nearby enemies (both local AI enemies and remote players)
+        const gameScene = this.scene as any;
+        
+        // Store affected enemies for slowing effect
+        const affectedEnemies: any[] = [];
+        
+        // Damage local AI enemies
+        if (gameScene.gameManager && gameScene.gameManager.enemies) {
+            gameScene.gameManager.enemies.forEach((enemy: any) => {
+                if (enemy.isAlive && enemy.body && enemy.body.active) {
+                    const distance = Phaser.Math.Distance.Between(
+                        player.body.x, player.body.y,
+                        enemy.body.x, enemy.body.y
+                    );
+                    if (distance <= effects.range!) {
+                        // Apply damage to enemy
+                        enemy.takeDamage(effects.damage!);
+                        
+                        // Apply slow effect
+                        if (!enemy.originalSpeed) {
+                            enemy.originalSpeed = enemy.stats.speed;
+                        }
+                        enemy.stats.speed = enemy.originalSpeed * 0.3; // Slow to 30% speed
+                        affectedEnemies.push(enemy);
+                        
+                        console.log(`Shockwave hit enemy for ${effects.damage!} damage and slowed!`);
+                    }
+                }
+            });
+        }
+        
+        // Damage remote players in multiplayer
+        if (gameStateManager.isGameActive()) {
+            const nearbyPlayers = gameStateManager.getRemotePlayers().filter(p => {
+                const distance = Phaser.Math.Distance.Between(
+                    player.body.x, player.body.y,
+                    p.position.x, p.position.y
+                );
+                return distance <= effects.range! && p.isAlive;
+            });
+            
+            // Apply damage to nearby remote players
+            nearbyPlayers.forEach(remotePlayer => {
+                // Report shockwave damage
+                gameStateManager.reportHit(
+                    remotePlayer.id,
+                    effects.damage!,
+                    'shockwave_' + Date.now(),
+                    { x: player.body.x, y: player.body.y }
+                );
+            });
+            
+            // Notify server about skill usage
+            gameStateManager.useSkill('bruiser_shockwave', { 
+                x: player.body.x, 
+                y: player.body.y
+            });
+        }
         
         return {
             type: TankClassType.BRUISER,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [tauntAura],
-            onEnd: (player: Player) => {
-                player.damageReduction = 0;
-                tauntAura.destroy();
+            visualEffects: [shockwave],
+            player: player,
+            onEnd: () => {
+                // Restore original speed to slowed enemies
+                affectedEnemies.forEach(enemy => {
+                    if (enemy.originalSpeed && enemy.stats) {
+                        enemy.stats.speed = enemy.originalSpeed;
+                        delete enemy.originalSpeed;
+                    }
+                });
+                console.log(`Slow effect ended, restored speed to ${affectedEnemies.length} enemies`);
             }
         };
     }
@@ -221,9 +288,18 @@ export class SkillSystem {
             speedMultiplier: 0.1
         };
         
-        const originalSpeed = player.stats.speed;
+        // Store original stats to ensure proper restoration
+        const originalStats = {
+            speed: player.stats.speed,
+            damageReduction: player.damageReduction
+        };
+        
+        // Apply fortress mode effects
         player.damageReduction = effects.damageReduction!;
-        player.stats.speed = originalSpeed * effects.speedMultiplier!;
+        player.stats.speed = originalStats.speed * effects.speedMultiplier!;
+        
+        // Also store in player object for safety
+        (player as any).fortressModeOriginalSpeed = originalStats.speed;
         
         // Visual effect - fortress appearance
         player.body.setTint(0x666666);
@@ -259,12 +335,24 @@ export class SkillSystem {
             duration: effects.duration,
             effects: effects,
             visualEffects: [fortressShield],
+            player: player, // Store player reference
             onEnd: (player: Player) => {
-                player.damageReduction = 0;
-                player.stats.speed = originalSpeed;
+                // Properly restore original stats with multiple fallbacks
+                player.damageReduction = originalStats.damageReduction;
+                
+                // Use stored speed with fallback
+                const speedToRestore = (player as any).fortressModeOriginalSpeed || originalStats.speed;
+                player.stats.speed = speedToRestore;
+                
+                // Clean up the temporary property
+                delete (player as any).fortressModeOriginalSpeed;
+                
+                // Clear visual effects
                 player.body.clearTint();
                 player.barrel.clearTint();
                 fortressShield.destroy();
+                
+                console.log('Fortress Mode ended - Speed restored to:', player.stats.speed);
             }
         };
     }
@@ -1423,12 +1511,8 @@ export class SkillSystem {
             // Check if skill has expired
             if (currentTime >= skill.startTime + skill.duration) {
                 // End skill
-                if (skill.onEnd) {
-                    // Find player by ID (simplified - in real implementation you'd have a proper player manager)
-                    const player = this.findPlayerById(playerId);
-                    if (player) {
-                        skill.onEnd(player);
-                    }
+                if (skill.onEnd && skill.player) {
+                    skill.onEnd(skill.player);
                 }
                 
                 // Clean up visual effects
@@ -1441,11 +1525,8 @@ export class SkillSystem {
                 expiredSkills.push(playerId);
             } else {
                 // Update skill if needed
-                if (skill.onUpdate) {
-                    const player = this.findPlayerById(playerId);
-                    if (player) {
-                        skill.onUpdate(player, deltaTime);
-                    }
+                if (skill.onUpdate && skill.player) {
+                    skill.onUpdate(skill.player, deltaTime);
                 }
             }
         });

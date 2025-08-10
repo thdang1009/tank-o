@@ -184,7 +184,7 @@ last prompt:
   Bruiser 🛡️
 
   - Q - Shield Wall: 75% damage reduction with blue shield effect
-  - E - Taunt: Damage resistance with intimidating red aura
+  - E - shock wave that deal dame and slow
   - R - Fortress Mode: 90% damage reduction, reduced speed, fortress appearance
 
   Dealer ⚔️
