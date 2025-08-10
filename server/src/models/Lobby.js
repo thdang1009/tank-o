@@ -115,8 +115,11 @@ class Lobby {
         return {
             id: this.id,
             lobbyCode: this.lobbyCode,
+            host: this.hostSocketId,
             hostSocketId: this.hostSocketId,
             gameConfig: this.gameConfig,
+            gameMode: this.gameConfig.gameMode,
+            mapType: this.gameConfig.mapType,
             players: this.players.map(p => ({
                 id: p.id,
                 username: p.username,

@@ -11,6 +11,8 @@ interface LobbySceneData {
     username: string;
     isHost: boolean;
     lobbyId?: string;
+    alreadyJoined?: boolean;
+    lobbyData?: Lobby;
 }
 
 export class LobbyScene extends Scene {
@@ -19,6 +21,8 @@ export class LobbyScene extends Scene {
     private playerId: string = '';
     private username: string = '';
     private isHost: boolean = false;
+    private lobbyId: string = '';
+    private alreadyJoined: boolean = false;
     private selectedTankClass: TankClassType = TankClassType.VERSATILE;
 
     // UI elements
@@ -43,6 +47,13 @@ export class LobbyScene extends Scene {
     init(data: LobbySceneData) {
         this.username = data.username;
         this.isHost = data.isHost;
+        this.alreadyJoined = data.alreadyJoined || false;
+        if (data.lobbyId) {
+            this.lobbyId = data.lobbyId;
+        }
+        if (data.lobbyData) {
+            this.lobby = data.lobbyData;
+        }
 
         // Setup event listeners
         this.setupSocketEventListeners();
@@ -101,9 +112,19 @@ export class LobbyScene extends Scene {
         this.createTankClassSection();
         this.createBottomButtons();
 
-        // If we're joining an existing lobby
-        if (!this.isHost) {
+        // If we're joining an existing lobby and haven't already joined
+        if (!this.isHost && !this.alreadyJoined) {
             this.joinExistingLobby();
+        } else if (!this.isHost && this.alreadyJoined) {
+            // Player already joined from previous scene, just set up the UI
+            this.playerId = this.socketService.socket?.id || '';
+            // Use lobby data passed from join scene if available
+            if (this.lobby) {
+                this.lobbyCodeText.setText(this.lobby.lobbyCode || this.lobby.id);
+                this.updatePlayerList();
+                this.updateGameSettingsButtons();
+            }
+            // Also wait for server to send lobby data via LOBBY_UPDATED event
         } else {
             this.createNewLobby();
         }
@@ -134,8 +155,7 @@ export class LobbyScene extends Scene {
     }
 
     getLobbyId() {
-        // TODO: Get lobby ID from URL
-        return null;
+        return this.lobbyId || null;
     }
 
     /**
@@ -154,7 +174,7 @@ export class LobbyScene extends Scene {
                 console.log('Lobby joined:', lobby);
                 this.lobby = lobby;
                 this.playerId = this.socketService.socket?.id || '';
-                this.lobbyCodeText.setText(lobby.id);
+                this.lobbyCodeText.setText(lobby.lobbyCode || lobby.id);
                 this.updatePlayerList();
                 this.updateGameSettingsButtons();
             })
@@ -291,6 +311,23 @@ export class LobbyScene extends Scene {
             // Add to player list container
             this.playerListContainer.add(playerContainer);
         });
+        
+        // Update ready button for non-host players
+        if (!this.isHost && this.readyButton) {
+            const currentPlayer = this.lobby.players.find(p => p.id === this.playerId);
+            if (currentPlayer) {
+                const bg = this.readyButton.getAt(0) as GameObjects.Rectangle;
+                const text = this.readyButton.getAt(1) as GameObjects.Text;
+
+                if (currentPlayer.isReady) {
+                    bg.setFillStyle(0x660000, 0.8);
+                    text.setText('NOT READY');
+                } else {
+                    bg.setFillStyle(0x006600, 0.8);
+                    text.setText('READY');
+                }
+            }
+        }
         
         // Ensure player list container is visible
         this.playerListContainer.setVisible(true);
@@ -866,20 +903,11 @@ export class LobbyScene extends Scene {
         const player = this.lobby?.players.find(p => p.id === this.playerId);
         if (!player) return;
 
-        // Toggle ready status
-        this.socketService.toggleReady();
+        // Toggle ready status - pass the opposite of current status
+        const newReadyStatus = !player.isReady;
+        this.socketService.toggleReady(newReadyStatus);
 
-        // Update button appearance
-        const bg = this.readyButton.getAt(0) as GameObjects.Rectangle;
-        const text = this.readyButton.getAt(1) as GameObjects.Text;
-
-        if (player.isReady) {
-            bg.setFillStyle(0x660000, 0.8);
-            text.setText('NOT READY');
-        } else {
-            bg.setFillStyle(0x006600, 0.8);
-            text.setText('READY');
-        }
+        // Don't update UI here - wait for server response to update via LOBBY_UPDATED event
     }
 
     /**

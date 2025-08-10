@@ -207,11 +207,13 @@ export class JoinLobby extends Scene {
                 this.statusText.setText('Joined lobby! Redirecting...');
                 this.statusText.setColor('#00ff00');
                 
-                // Go to lobby scene
+                // Go to lobby scene with lobby data
                 this.scene.start('LobbyScene', {
                     username: this.username,
                     isHost: false,
-                    lobbyId: this.lobbyCode
+                    lobbyId: this.lobbyCode,
+                    alreadyJoined: true,
+                    lobbyData: lobby
                 });
             })
             .catch(error => {

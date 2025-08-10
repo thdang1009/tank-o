@@ -5,7 +5,7 @@
     "main": "dist/bundle.js",
     "scripts": {
         "ng": "ng",
-        "dev": "node log dev & ng serve",
+        "dev": "node log dev & ng serve --host 0.0.0.0",
         "dev-nolog": "ng serve",
         "dev-full": "node scripts/dev.js",
         "build": "node log.js build & ng build --base-href='./'",
