@@ -169,8 +169,8 @@ export class ClassSelection extends Scene {
             container.add(tankPlaceholder);
         }
         
-        // Tank name (large)
-        const nameText = this.add.text(-200, 60, classDefinition.name, {
+        // Tank name (large) - moved up by 50px
+        const nameText = this.add.text(-200, 10, classDefinition.name, {
             fontSize: '32px',
             fontStyle: 'bold',
             color: '#ffffff',
@@ -180,8 +180,8 @@ export class ClassSelection extends Scene {
         }).setOrigin(0.5, 0);
         container.add(nameText);
         
-        // Tank description
-        const descText = this.add.text(-200, 110, classDefinition.description, {
+        // Tank description - moved up by 50px
+        const descText = this.add.text(-200, 60, classDefinition.description, {
             fontSize: '16px',
             color: '#cccccc',
             align: 'center',
@@ -189,8 +189,8 @@ export class ClassSelection extends Scene {
         }).setOrigin(0.5, 0);
         container.add(descText);
         
-        // Stats display (left side)
-        const statsTitle = this.add.text(-200, 170, 'TANK STATS', {
+        // Stats display (left side) - moved up by 50px
+        const statsTitle = this.add.text(-200, 120, 'TANK STATS', {
             fontSize: '18px',
             fontStyle: 'bold',
             color: '#ffcc00',
@@ -198,7 +198,7 @@ export class ClassSelection extends Scene {
         }).setOrigin(0.5, 0);
         container.add(statsTitle);
         
-        const statsY = 200;
+        const statsY = 150;
         const stats = [
             { name: 'Health', value: classDefinition.stats.hp, color: '#ff4444' },
             { name: 'Attack', value: classDefinition.stats.atk, color: '#ff8844' },

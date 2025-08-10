@@ -59,7 +59,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         stats: {
             hp: 1500,
             maxHp: 1500,
-            def: 25,
+            def: 20,
             atk: 40,
             spellPower: 80,
             speed: 120,
@@ -91,7 +91,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         stats: {
             hp: 700,
             maxHp: 700,
-            def: 8,
+            def: 4,
             atk: 80,
             spellPower: 120,
             speed: 180,
@@ -123,7 +123,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         stats: {
             hp: 850,
             maxHp: 850,
-            def: 10,
+            def: 5,
             atk: 35,
             spellPower: 150,
             speed: 170,
@@ -155,7 +155,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         stats: {
             hp: 1000,
             maxHp: 1000,
-            def: 15,
+            def: 8,
             atk: 50,
             spellPower: 100,
             speed: 150,
@@ -187,7 +187,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         stats: {
             hp: 600,
             maxHp: 600,
-            def: 5,
+            def: 0,
             atk: 30,
             spellPower: 200,
             speed: 140,
@@ -219,7 +219,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         stats: {
             hp: 550,
             maxHp: 550,
-            def: 3,
+            def: 1,
             atk: 45,
             spellPower: 80,
             speed: 220,
@@ -251,7 +251,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         stats: {
             hp: 1200,
             maxHp: 1200,
-            def: 20,
+            def: 10,
             atk: 100,
             spellPower: 180,
             speed: 100,
@@ -283,7 +283,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         stats: {
             hp: 650,
             maxHp: 650,
-            def: 8,
+            def: 4,
             atk: 55,
             spellPower: 90,
             speed: 200,
@@ -315,7 +315,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         stats: {
             hp: 900,
             maxHp: 900,
-            def: 18,
+            def: 9,
             atk: 60,
             spellPower: 160,
             speed: 130,
