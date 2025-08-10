@@ -40,8 +40,8 @@ export function getSkillCooldown(classType: TankClassType, skillSlot: 'skill1' |
         [TankClassType.DEALER]: { skill1: 6000, skill2: 10000, ultimate: 35000 },
         [TankClassType.SUPPORTER]: { skill1: 10000, skill2: 12000, ultimate: 40000 },
         [TankClassType.VERSATILE]: { skill1: 5000, skill2: 8000, ultimate: 30000 },
-        [TankClassType.MAGE]: { skill1: 12000, skill2: 14000, ultimate: 50000 },
-        [TankClassType.SPY]: { skill1: 4000, skill2: 6000, ultimate: 25000 },
+        [TankClassType.MAGE]: { skill1: 6000, skill2: 6000, ultimate: 50000 },
+        [TankClassType.SPY]: { skill1: 10000, skill2: 8000, ultimate: 25000 },
         [TankClassType.DEMOLITION]: { skill1: 15000, skill2: 18000, ultimate: 60000 },
         [TankClassType.RADAR_SCOUT]: { skill1: 5000, skill2: 7000, ultimate: 30000 },
         [TankClassType.ICE_TANK]: { skill1: 8000, skill2: 12000, ultimate: 40000 }

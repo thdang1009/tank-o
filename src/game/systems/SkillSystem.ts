@@ -29,26 +29,26 @@ export interface ActiveSkill {
 export class SkillSystem {
     private scene: Scene;
     private activeSkills: Map<string, ActiveSkill> = new Map();
-    
+
     constructor(scene: Scene) {
         this.scene = scene;
     }
-    
+
     // Main method to use a skill
     useSkill(player: Player, skillType: TankClassType, targetPosition?: { x: number, y: number }, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1'): boolean {
         const playerId = player.playerLobbyId;
-        
+
         // Check if player already has an active skill
         if (this.activeSkills.has(playerId)) {
             console.log(`Player ${playerId} already has active skill`);
             return false;
         }
-        
+
         // Double-check cooldowns as backup (in case Player.useSkill cooldown check fails)
         const now = Date.now();
         const cooldown = this.getSkillCooldown(skillType, skillSlot);
         let lastUsed: number;
-        
+
         switch (skillSlot) {
             case 'skill1':
                 lastUsed = player.lastSkill1Used;
@@ -60,31 +60,31 @@ export class SkillSystem {
                 lastUsed = player.lastUltimateUsed;
                 break;
         }
-        
+
         if (now < lastUsed + cooldown) {
             console.log(`SkillSystem: ${skillSlot} still on cooldown for ${Math.ceil((lastUsed + cooldown - now) / 1000)}s`);
             return false;
         }
-        
+
         // Activate the skill
         const skill = this.activateSkill(player, skillType, targetPosition, skillSlot);
         if (skill) {
             this.activeSkills.set(playerId, skill);
             console.log(`Skill activated: ${skillType} for player ${playerId}, duration: ${skill.duration}ms`);
-            
+
             // Note: lastSkillXUsed time is already updated by Player.useSkill() before calling this method
-            
+
             // Notify server in multiplayer
             if (gameStateManager.isGameActive()) {
                 gameStateManager.useSkill(skillType, targetPosition);
             }
-            
+
             return true;
         }
-        
+
         return false;
     }
-    
+
     // Activate specific skill based on tank class and skill slot
     private activateSkill(player: Player, skillType: TankClassType, targetPosition?: { x: number, y: number }, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1'): ActiveSkill | null {
         switch (skillType) {
@@ -110,7 +110,7 @@ export class SkillSystem {
                 return null;
         }
     }
-    
+
     // Bruiser skills
     private activateBruiserSkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
@@ -122,17 +122,17 @@ export class SkillSystem {
                 return this.bruiserFortressMode(player);
         }
     }
-    
+
     // Bruiser Skill 1: Shield Wall - 75% damage reduction for 5 seconds
     private bruiserShieldWall(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 5000,
             damageReduction: 0.75
         };
-        
+
         // Apply immediate effects
         player.damageReduction = effects.damageReduction!;
-        
+
         // Visual effect - shield aura
         const shieldCircle = this.scene.add.circle(
             player.body.x,
@@ -143,7 +143,7 @@ export class SkillSystem {
         );
         shieldCircle.setStrokeStyle(4, 0x0088ff);
         shieldCircle.setDepth(player.body.depth + 1);
-        
+
         // Animated shield effect
         this.scene.tweens.add({
             targets: shieldCircle,
@@ -159,10 +159,10 @@ export class SkillSystem {
                 }
             }
         });
-        
+
         // Sound effect
         this.scene.sound.play(AssetsAudioEnum.DEF_BUFF, { volume: 0.5 });
-        
+
         return {
             type: TankClassType.BRUISER,
             startTime: Date.now(),
@@ -176,7 +176,7 @@ export class SkillSystem {
             }
         };
     }
-    
+
     // Bruiser Skill 2: Shockwave Slam
     private bruiserShockWave(player: Player): ActiveSkill {
         const effects: SkillEffect = {
@@ -184,7 +184,7 @@ export class SkillSystem {
             damage: 100,
             range: 150
         };
-        
+
         // Create expanding shockwave visual
         const shockwave = this.scene.add.circle(
             player.body.x,
@@ -195,7 +195,7 @@ export class SkillSystem {
         );
         shockwave.setStrokeStyle(8, 0xff4400);
         shockwave.setDepth(player.body.depth + 1);
-        
+
         // Expand shockwave (faster animation than slow duration)
         this.scene.tweens.add({
             targets: shockwave,
@@ -206,19 +206,19 @@ export class SkillSystem {
                 shockwave.destroy();
             }
         });
-        
+
         // Screen shake for impact
         this.scene.cameras.main.shake(300, 0.01);
-        
+
         // Sound effect
         this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.6 });
-        
+
         // Damage nearby enemies (both local AI enemies and remote players)
         const gameScene = this.scene as any;
-        
+
         // Store affected enemies for slowing effect
         const affectedEnemies: any[] = [];
-        
+
         // Damage local AI enemies
         if (gameScene.gameManager && gameScene.gameManager.enemies) {
             gameScene.gameManager.enemies.forEach((enemy: any) => {
@@ -230,20 +230,20 @@ export class SkillSystem {
                     if (distance <= effects.range!) {
                         // Apply damage to enemy
                         enemy.takeDamage(effects.damage!);
-                        
+
                         // Apply slow effect
                         if (!enemy.originalSpeed) {
                             enemy.originalSpeed = enemy.stats.speed;
                         }
                         enemy.stats.speed = enemy.originalSpeed * 0.3; // Slow to 30% speed
                         affectedEnemies.push(enemy);
-                        
+
                         console.log(`Shockwave hit enemy for ${effects.damage!} damage and slowed!`);
                     }
                 }
             });
         }
-        
+
         // Damage remote players in multiplayer
         if (gameStateManager.isGameActive()) {
             const nearbyPlayers = gameStateManager.getRemotePlayers().filter(p => {
@@ -253,7 +253,7 @@ export class SkillSystem {
                 );
                 return distance <= effects.range! && p.isAlive;
             });
-            
+
             // Apply damage to nearby remote players
             nearbyPlayers.forEach(remotePlayer => {
                 // Report shockwave damage
@@ -264,14 +264,14 @@ export class SkillSystem {
                     { x: player.body.x, y: player.body.y }
                 );
             });
-            
+
             // Notify server about skill usage
-            gameStateManager.useSkill('bruiser_shockwave', { 
-                x: player.body.x, 
+            gameStateManager.useSkill('bruiser_shockwave', {
+                x: player.body.x,
                 y: player.body.y
             });
         }
-        
+
         return {
             type: TankClassType.BRUISER,
             startTime: Date.now(),
@@ -291,7 +291,7 @@ export class SkillSystem {
             }
         };
     }
-    
+
     // Bruiser Ultimate: Fortress Mode
     private bruiserFortressMode(player: Player): ActiveSkill {
         const effects: SkillEffect = {
@@ -299,24 +299,24 @@ export class SkillSystem {
             damageReduction: 0.9,
             speedMultiplier: 0.1
         };
-        
+
         // Store original stats to ensure proper restoration
         const originalStats = {
             speed: player.stats.speed,
             damageReduction: player.damageReduction
         };
-        
+
         // Apply fortress mode effects
         player.damageReduction = effects.damageReduction!;
         player.stats.speed = originalStats.speed * effects.speedMultiplier!;
-        
+
         // Also store in player object for safety
         (player as any).fortressModeOriginalSpeed = originalStats.speed;
-        
+
         // Visual effect - fortress appearance
         player.body.setTint(0x666666);
         player.barrel.setTint(0x666666);
-        
+
         const fortressShield = this.scene.add.circle(
             player.body.x,
             player.body.y,
@@ -326,7 +326,7 @@ export class SkillSystem {
         );
         fortressShield.setStrokeStyle(8, 0x888888);
         fortressShield.setDepth(player.body.depth + 1);
-        
+
         this.scene.tweens.add({
             targets: fortressShield,
             rotation: Math.PI * 2,
@@ -338,9 +338,9 @@ export class SkillSystem {
                 }
             }
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.DEF_BUFF, { volume: 0.7 });
-        
+
         return {
             type: TankClassType.BRUISER,
             startTime: Date.now(),
@@ -351,24 +351,24 @@ export class SkillSystem {
             onEnd: (player: Player) => {
                 // Properly restore original stats with multiple fallbacks
                 player.damageReduction = originalStats.damageReduction;
-                
+
                 // Use stored speed with fallback
                 const speedToRestore = (player as any).fortressModeOriginalSpeed || originalStats.speed;
                 player.stats.speed = speedToRestore;
-                
+
                 // Clean up the temporary property
                 delete (player as any).fortressModeOriginalSpeed;
-                
+
                 // Clear visual effects
                 player.body.clearTint();
                 player.barrel.clearTint();
                 fortressShield.destroy();
-                
+
                 console.log('Fortress Mode ended - Speed restored to:', player.stats.speed);
             }
         };
     }
-    
+
     // Dealer skills
     private activateDealerSkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
@@ -380,50 +380,50 @@ export class SkillSystem {
                 return this.dealerBulletStorm(player);
         }
     }
-    
+
     // Dealer Skill 1: Rapid Fire - Fast fire rate for 3 seconds (no damage boost)
     private dealerRapidFire(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 3000
         };
-        
+
         // Store original stats (only fire rate needs to be changed)
         const originalFireRate = player.stats.fireRate;
-        
+
         // Also store on player object for safety
         (player as any).rapidFireOriginalFireRate = originalFireRate;
-        
+
         // Apply only fire rate buff (no damage boost)
         player.stats.fireRate = originalFireRate * 0.5; // Faster fire rate
         player.isRapidFire = true;
-        
+
         console.log(`Rapid Fire activated - Original fire rate: ${originalFireRate}, New fire rate: ${player.stats.fireRate}`);
-        
+
         // Create a fallback timer to force reset even if skill system fails
         const fallbackTimer = this.scene.time.delayedCall(effects.duration + 500, () => {
             // Force reset if still in rapid fire mode
             if (player.isRapidFire) {
                 const fireRateToRestore = (player as any).rapidFireOriginalFireRate || originalFireRate;
-                
+
                 player.stats.fireRate = fireRateToRestore;
                 player.isRapidFire = false;
                 player.barrel.clearTint();
                 player.barrel.setScale(1);
-                
+
                 // Clean up stored values
                 delete (player as any).rapidFireOriginalFireRate;
-                
+
                 console.log(`FALLBACK: Rapid Fire force reset - Fire rate: ${player.stats.fireRate}`);
             }
         });
-        
+
         // Store fallback timer reference for cleanup
         (player as any).rapidFireFallbackTimer = fallbackTimer;
-        
+
         // Visual effect - red barrel glow
         player.barrel.setTint(0xff4444);
         player.barrel.setScale(1.2);
-        
+
         // Muzzle flash effect
         const muzzleFlash = this.scene.add.circle(
             player.barrel.x,
@@ -433,7 +433,7 @@ export class SkillSystem {
             0.8
         );
         muzzleFlash.setDepth(player.barrel.depth + 1);
-        
+
         this.scene.tweens.add({
             targets: muzzleFlash,
             alpha: 0,
@@ -447,9 +447,9 @@ export class SkillSystem {
                 }
             }
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.ATK_BUFF, { volume: 0.5 });
-        
+
         return {
             type: TankClassType.DEALER,
             startTime: Date.now(),
@@ -460,44 +460,44 @@ export class SkillSystem {
             onEnd: (player: Player) => {
                 // Use stored values with fallbacks (only fire rate, no attack)
                 const fireRateToRestore = (player as any).rapidFireOriginalFireRate || originalFireRate;
-                
+
                 player.stats.fireRate = fireRateToRestore;
                 player.isRapidFire = false;
                 player.barrel.clearTint();
                 player.barrel.setScale(1);
                 muzzleFlash.destroy();
-                
+
                 // Cancel fallback timer since we're properly ending
                 const fallbackTimer = (player as any).rapidFireFallbackTimer;
                 if (fallbackTimer) {
                     fallbackTimer.destroy();
                     delete (player as any).rapidFireFallbackTimer;
                 }
-                
+
                 // Clean up stored values
                 delete (player as any).rapidFireOriginalFireRate;
-                
+
                 console.log(`Rapid Fire ended normally - Fire rate restored to: ${player.stats.fireRate}`);
             }
         };
     }
-    
+
     // Dealer Skill 2: Precision Shot - Piercing bullet that travels to map edge
     private dealerPrecisionShot(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
         const effects: SkillEffect = {
             duration: 2000, // Longer duration for travel time
             damage: 250 // High damage per enemy hit
         };
-        
+
         const angle = player.barrel.rotation;
-        
+
         // Create a special piercing bullet using player's fire method but with modifications
         const barrelTip = this.getBarrelTip(player);
-        
+
         // Temporarily increase damage and create special bullet
         const originalAtk = player.stats.atk;
         player.stats.atk = effects.damage!;
-        
+
         // Create the precision bullet using the existing bullet system
         const precisionBullet = this.scene.add.sprite(
             barrelTip.x,
@@ -508,27 +508,27 @@ export class SkillSystem {
         precisionBullet.setTint(0xffff00);
         precisionBullet.setDepth(10);
         precisionBullet.setRotation(angle);
-        
+
         // Enable physics for the bullet
         this.scene.physics.world.enable(precisionBullet);
         const bulletBody = precisionBullet.body as Phaser.Physics.Arcade.Body;
-        
+
         // Set velocity to travel across the map
         const speed = 600;
         const velocityX = Math.cos(angle) * speed;
         const velocityY = Math.sin(angle) * speed;
         bulletBody.setVelocity(velocityX, velocityY);
-        
+
         // Make it piercing - track hit enemies to prevent multiple hits
         const hitEnemies = new Set();
-        
+
         // Damage enemies it passes through
         const damageInterval = this.scene.time.addEvent({
             delay: 50, // Check for hits every 50ms
             repeat: -1,
             callback: () => {
                 const gameScene = this.scene as any;
-                
+
                 // Check for collisions with enemies
                 if (gameScene.gameManager && gameScene.gameManager.enemies) {
                     gameScene.gameManager.enemies.forEach((enemy: any) => {
@@ -541,7 +541,7 @@ export class SkillSystem {
                                 enemy.takeDamage(effects.damage!);
                                 hitEnemies.add(enemy);
                                 console.log(`Precision Shot hit enemy for ${effects.damage!} damage!`);
-                                
+
                                 // Create hit effect
                                 const hitEffect = this.scene.add.circle(
                                     enemy.body.x, enemy.body.y, 20, 0xffff00, 0.8
@@ -557,7 +557,7 @@ export class SkillSystem {
                         }
                     });
                 }
-                
+
                 // Check if bullet is out of bounds (reached map edge)
                 const bounds = this.scene.physics.world.bounds;
                 if (precisionBullet.x < bounds.x || precisionBullet.x > bounds.x + bounds.width ||
@@ -567,15 +567,15 @@ export class SkillSystem {
                 }
             }
         });
-        
+
         // Restore original attack
         player.stats.atk = originalAtk;
-        
+
         // Muzzle flash
         const muzzleFlash = this.scene.add.circle(
             barrelTip.x, barrelTip.y, 25, 0xffff00, 0.9
         );
-        
+
         this.scene.tweens.add({
             targets: muzzleFlash,
             alpha: 0,
@@ -583,9 +583,9 @@ export class SkillSystem {
             duration: 300,
             onComplete: () => muzzleFlash.destroy()
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.SHOOT, { volume: 1.0 });
-        
+
         return {
             type: TankClassType.DEALER,
             startTime: Date.now(),
@@ -604,66 +604,66 @@ export class SkillSystem {
             }
         };
     }
-    
+
     // Dealer Ultimate: Bullet Storm - Fire 4 powerful bursts
     private dealerBulletStorm(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 2000,
             damage: 150 // Increased damage per burst
         };
-        
+
         const burstCount = 4;
         const bulletsPerBurst = 5; // 5 bullets per burst for total of 20 bullets
         let burstsFired = 0;
-        
+
         // Fire 4 bursts with delay between each
         const fireNextBurst = () => {
             if (burstsFired >= burstCount || !player.body.active) {
                 return;
             }
-            
+
             // Fire a burst of bullets in different directions
             for (let i = 0; i < bulletsPerBurst; i++) {
                 const spreadAngle = (i - 2) * 0.3; // Spread bullets in a cone
                 const bulletAngle = player.barrel.rotation + spreadAngle;
-                
+
                 // Fire actual bullet using player's fire method
                 if (player.fire) {
                     // Temporarily boost damage for ultimate bullets
                     const originalAtk = player.stats.atk;
                     player.stats.atk = originalAtk + effects.damage!;
-                    
+
                     // Override barrel rotation temporarily for spread
                     const originalRotation = player.barrel.rotation;
                     player.barrel.rotation = bulletAngle;
-                    
+
                     player.fire();
-                    
+
                     // Restore original values
                     player.stats.atk = originalAtk;
                     player.barrel.rotation = originalRotation;
                 }
             }
-            
+
             // Visual and audio effects for each burst
             this.scene.cameras.main.shake(200, 0.005);
             this.scene.sound.play(AssetsAudioEnum.SHOOT, { volume: 0.8 });
-            
+
             burstsFired++;
-            
+
             // Schedule next burst
             if (burstsFired < burstCount) {
                 this.scene.time.delayedCall(500, fireNextBurst); // 500ms between bursts
             }
         };
-        
+
         // Start the first burst immediately
         fireNextBurst();
-        
+
         // Screen shake for ultimate activation
         this.scene.cameras.main.shake(400, 0.02);
         this.scene.sound.play(AssetsAudioEnum.ATK_BUFF, { volume: 0.7 });
-        
+
         return {
             type: TankClassType.DEALER,
             startTime: Date.now(),
@@ -673,7 +673,7 @@ export class SkillSystem {
             player: player
         };
     }
-    
+
     // Supporter skills
     private activateSupporterSkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
@@ -685,7 +685,7 @@ export class SkillSystem {
                 return this.supporterMassRestoration(player);
         }
     }
-    
+
     // Supporter Skill 1: Repair Pulse - Heal self and nearby allies
     private supporterRepairPulse(player: Player): ActiveSkill {
         const effects: SkillEffect = {
@@ -693,10 +693,10 @@ export class SkillSystem {
             healing: 300,
             range: 150
         };
-        
+
         // Heal self immediately
         player.heal(effects.healing!);
-        
+
         // Create healing pulse visual
         const healPulse = this.scene.add.circle(
             player.body.x,
@@ -706,7 +706,7 @@ export class SkillSystem {
             0.6
         );
         healPulse.setStrokeStyle(3, 0x00ff00);
-        
+
         // Expand healing pulse
         this.scene.tweens.add({
             targets: healPulse,
@@ -717,7 +717,7 @@ export class SkillSystem {
                 healPulse.destroy();
             }
         });
-        
+
         // Heal nearby players in multiplayer
         if (gameStateManager.isGameActive()) {
             const nearbyPlayers = gameStateManager.getRemotePlayers().filter(p => {
@@ -727,12 +727,12 @@ export class SkillSystem {
                 );
                 return distance <= effects.range! && p.isAlive;
             });
-            
+
             // In a full implementation, you'd send heal events to these players
         }
-        
+
         this.scene.sound.play(AssetsAudioEnum.HEAL, { volume: 0.5 });
-        
+
         return {
             type: TankClassType.SUPPORTER,
             startTime: Date.now(),
@@ -741,7 +741,7 @@ export class SkillSystem {
             visualEffects: [healPulse]
         };
     }
-    
+
     // Versatile skills
     private activateVersatileSkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
@@ -753,23 +753,23 @@ export class SkillSystem {
                 return this.versatileTacticalStrike(player);
         }
     }
-    
+
     // Versatile Skill 1: Stealth Mode - Become invisible and gain speed
     private versatileStealthMode(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 8000,
             speedMultiplier: 1.5
         };
-        
+
         // Apply stealth
         player.isInvisible = true;
         const originalSpeed = player.stats.speed;
         player.stats.speed = originalSpeed * effects.speedMultiplier!;
-        
+
         // Visual effect - partial transparency
         player.body.setAlpha(0.3);
         player.barrel.setAlpha(0.3);
-        
+
         // Stealth particles
         const stealthEffect = this.scene.add.particles(0, 0, AssetsEnum.BULLET_BLUE_1, {
             scale: { start: 0.1, end: 0 },
@@ -778,11 +778,11 @@ export class SkillSystem {
             frequency: 100,
             quantity: 3
         });
-        
+
         stealthEffect.startFollow(player.body);
-        
+
         this.scene.sound.play(AssetsAudioEnum.DISAPPEAR, { volume: 0.3 });
-        
+
         return {
             type: TankClassType.VERSATILE,
             startTime: Date.now(),
@@ -798,14 +798,14 @@ export class SkillSystem {
             }
         };
     }
-    
+
     // Versatile Skill 2: Scout Vision
     private versatileScoutVision(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 5000,
             range: 400
         };
-        
+
         // Create radar effect
         const scoutRadar = this.scene.add.circle(
             player.body.x,
@@ -816,7 +816,7 @@ export class SkillSystem {
         );
         scoutRadar.setStrokeStyle(3, 0x00ff00);
         scoutRadar.setDepth(1);
-        
+
         this.scene.tweens.add({
             targets: scoutRadar,
             alpha: 0.3,
@@ -831,9 +831,9 @@ export class SkillSystem {
                 }
             }
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.SPEED_UP, { volume: 0.4 });
-        
+
         return {
             type: TankClassType.VERSATILE,
             startTime: Date.now(),
@@ -845,20 +845,20 @@ export class SkillSystem {
             }
         };
     }
-    
+
     // Versatile Ultimate: Tactical Strike
     private versatileTacticalStrike(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 6000,
             damageMultiplier: 1.5
         };
-        
+
         const originalAtk = player.stats.atk;
         player.stats.atk = originalAtk * effects.damageMultiplier!;
-        
+
         // Visual effect - targeting system
         player.barrel.setTint(0xff0000);
-        
+
         const targetingSystem = this.scene.add.circle(
             player.body.x,
             player.body.y,
@@ -868,7 +868,7 @@ export class SkillSystem {
         );
         targetingSystem.setStrokeStyle(4, 0xff0000);
         targetingSystem.setDepth(player.body.depth + 1);
-        
+
         this.scene.tweens.add({
             targets: targetingSystem,
             rotation: Math.PI * 4,
@@ -879,9 +879,9 @@ export class SkillSystem {
                 }
             }
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.ATK_BUFF, { volume: 0.5 });
-        
+
         return {
             type: TankClassType.VERSATILE,
             startTime: Date.now(),
@@ -895,7 +895,7 @@ export class SkillSystem {
             }
         };
     }
-    
+
     // Mage skills
     private activateMageSkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
@@ -907,7 +907,7 @@ export class SkillSystem {
                 return this.mageMeteor(player, targetPosition);
         }
     }
-    
+
     // Mage Skill 1: Fireball - Launch devastating area damage projectile
     private mageFireball(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
         const effects: SkillEffect = {
@@ -915,7 +915,7 @@ export class SkillSystem {
             damage: 200,
             range: 80
         };
-        
+
         // Calculate much longer flight distance (10x further)
         const flightDistance = 800; // 10x longer range
         const angle = player.barrel.rotation;
@@ -923,7 +923,7 @@ export class SkillSystem {
         const startY = player.barrel.y;
         const targetX = startX + Math.cos(angle) * flightDistance;
         const targetY = startY + Math.sin(angle) * flightDistance;
-        
+
         // Create fireball projectile
         const fireball = this.scene.add.sprite(
             startX,
@@ -933,7 +933,7 @@ export class SkillSystem {
         fireball.setScale(1.5);
         fireball.setDepth(10);
         fireball.setRotation(angle);
-        
+
         // Add fire trail
         const fireTrail = this.scene.add.particles(0, 0, AssetsEnum.BULLET_RED_1, {
             scale: { start: 0.5, end: 0 },
@@ -943,12 +943,12 @@ export class SkillSystem {
             frequency: 50,
             quantity: 2
         });
-        
+
         fireTrail.startFollow(fireball);
-        
+
         // Track if fireball has exploded to prevent multiple explosions
         let hasExploded = false;
-        
+
         // Create collision detection during flight
         const collisionCheck = this.scene.time.addEvent({
             delay: 50, // Check every 50ms
@@ -958,12 +958,12 @@ export class SkillSystem {
                     collisionCheck.destroy();
                     return;
                 }
-                
+
                 // Check if fireball is out of bounds
                 const bounds = this.scene.physics.world.bounds;
                 if (fireball.x < bounds.x || fireball.x > bounds.x + bounds.width ||
                     fireball.y < bounds.y || fireball.y > bounds.y + bounds.height) {
-                    
+
                     hasExploded = true;
                     this.createExplosion(fireball.x, fireball.y, effects.range!, effects.damage!);
                     fireball.destroy();
@@ -971,14 +971,14 @@ export class SkillSystem {
                     collisionCheck.destroy();
                     return;
                 }
-                
+
                 // Check collision with enemies
                 const gameScene = this.scene as any;
                 if (gameScene.gameManager && gameScene.gameManager.enemies) {
-                    const enemyList = gameScene.gameManager.enemies.children ? 
-                        gameScene.gameManager.enemies.children.entries : 
+                    const enemyList = gameScene.gameManager.enemies.children ?
+                        gameScene.gameManager.enemies.children.entries :
                         gameScene.gameManager.enemies;
-                        
+
                     enemyList.forEach((enemy: any) => {
                         if (enemy && enemy.isAlive && enemy.body && enemy.body.active && !hasExploded) {
                             const distance = Phaser.Math.Distance.Between(
@@ -998,7 +998,7 @@ export class SkillSystem {
                 }
             }
         });
-        
+
         // Animate fireball to target (longer duration for longer distance)
         this.scene.tweens.add({
             targets: fireball,
@@ -1016,9 +1016,9 @@ export class SkillSystem {
                 collisionCheck.destroy();
             }
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.7 });
-        
+
         return {
             type: TankClassType.MAGE,
             startTime: Date.now(),
@@ -1027,16 +1027,16 @@ export class SkillSystem {
             visualEffects: [fireball, fireTrail]
         };
     }
-    
+
     // Add missing Supporter skills
     private supporterEnergyShield(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 8000,
             damageReduction: 0.4
         };
-        
+
         player.damageReduction = effects.damageReduction!;
-        
+
         const energyShield = this.scene.add.circle(
             player.body.x,
             player.body.y,
@@ -1046,7 +1046,7 @@ export class SkillSystem {
         );
         energyShield.setStrokeStyle(3, 0x00ff00);
         energyShield.setDepth(player.body.depth + 1);
-        
+
         this.scene.tweens.add({
             targets: energyShield,
             alpha: 0.6,
@@ -1061,9 +1061,9 @@ export class SkillSystem {
                 }
             }
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.DEF_BUFF, { volume: 0.4 });
-        
+
         return {
             type: TankClassType.SUPPORTER,
             startTime: Date.now(),
@@ -1076,17 +1076,17 @@ export class SkillSystem {
             }
         };
     }
-    
+
     private supporterMassRestoration(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 3000,
             healing: 500,
             range: 200
         };
-        
+
         // Heal self
         player.heal(effects.healing!);
-        
+
         const restoration = this.scene.add.circle(
             player.body.x,
             player.body.y,
@@ -1095,7 +1095,7 @@ export class SkillSystem {
             0.8
         );
         restoration.setStrokeStyle(5, 0x00ff00);
-        
+
         this.scene.tweens.add({
             targets: restoration,
             scale: effects.range! / 20,
@@ -1105,12 +1105,12 @@ export class SkillSystem {
                 restoration.destroy();
             }
         });
-        
+
         // Screen flash for healing
         this.scene.cameras.main.flash(200, 0, 255, 0, true);
-        
+
         this.scene.sound.play(AssetsAudioEnum.REVIVE, { volume: 0.6 });
-        
+
         return {
             type: TankClassType.SUPPORTER,
             startTime: Date.now(),
@@ -1119,7 +1119,7 @@ export class SkillSystem {
             visualEffects: [restoration]
         };
     }
-    
+
     // Spy skills
     private activateSpySkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
@@ -1131,26 +1131,26 @@ export class SkillSystem {
                 return this.spyAssassination(player, targetPosition);
         }
     }
-    
+
     // Spy Skill 1: Cloak - Enter stealth mode (invisibility only)
     private spyCloak(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 3000 // Just invisibility, no speed changes
         };
-        
+
         // Store original invisibility state for proper restoration
         const originalInvisible = player.isInvisible || false;
-        
+
         // Apply stealth effects (invisibility only)
         player.isInvisible = true;
-        
+
         // Store original invisibility state on player for safety
         (player as any).cloakOriginalInvisible = originalInvisible;
-        
+
         // Visual effect - partial transparency
         player.body.setAlpha(0.3);
         player.barrel.setAlpha(0.3);
-        
+
         // Stealth particles
         const stealthEffect = this.scene.add.particles(0, 0, AssetsEnum.BULLET_BLUE_1, {
             scale: { start: 0.1, end: 0 },
@@ -1160,31 +1160,31 @@ export class SkillSystem {
             frequency: 100,
             quantity: 3
         });
-        
+
         stealthEffect.startFollow(player.body);
-        
+
         // Create fallback timer to ensure effect ends even if skill system fails
         const fallbackTimer = this.scene.time.delayedCall(effects.duration + 500, () => {
             // Force reset if still in cloak mode
             if (player.isInvisible) {
                 const invisibleToRestore = (player as any).cloakOriginalInvisible || false;
-                
+
                 player.isInvisible = invisibleToRestore;
                 player.body.setAlpha(1);
                 player.barrel.setAlpha(1);
-                
+
                 // Clean up stored values
                 delete (player as any).cloakOriginalInvisible;
-                
+
                 console.log(`FALLBACK: Cloak force reset - Invisible: ${player.isInvisible}`);
             }
         });
-        
+
         // Store fallback timer reference for cleanup
         (player as any).cloakFallbackTimer = fallbackTimer;
-        
+
         this.scene.sound.play(AssetsAudioEnum.DISAPPEAR, { volume: 0.3 });
-        
+
         return {
             type: TankClassType.SPY,
             startTime: Date.now(),
@@ -1195,27 +1195,27 @@ export class SkillSystem {
             onEnd: (player: Player) => {
                 // Restore original invisibility state
                 const invisibleToRestore = (player as any).cloakOriginalInvisible || false;
-                
+
                 player.isInvisible = invisibleToRestore;
                 player.body.setAlpha(1);
                 player.barrel.setAlpha(1);
                 stealthEffect.destroy();
-                
+
                 // Cancel fallback timer since we're properly ending
                 const fallbackTimer = (player as any).cloakFallbackTimer;
                 if (fallbackTimer) {
                     fallbackTimer.destroy();
                     delete (player as any).cloakFallbackTimer;
                 }
-                
+
                 // Clean up stored values
                 delete (player as any).cloakOriginalInvisible;
-                
+
                 console.log(`Cloak ended normally - Invisible: ${player.isInvisible}`);
             }
         };
     }
-    
+
     // Demolition skills
     private activateDemolitionSkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
@@ -1227,7 +1227,7 @@ export class SkillSystem {
                 return this.demolitionNuclearStrike(player, targetPosition);
         }
     }
-    
+
     // Demolition Skill 1: Carpet Bomb - Artillery strike over large area
     private demolitionCarpetBomb(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
         const effects: SkillEffect = {
@@ -1235,12 +1235,12 @@ export class SkillSystem {
             damage: 150,
             range: 200
         };
-        
-        const target = targetPosition || { 
+
+        const target = targetPosition || {
             x: player.body.x + Math.cos(player.barrel.rotation) * 300,
             y: player.body.y + Math.sin(player.barrel.rotation) * 300
         };
-        
+
         // Create target indicator
         const targetIndicator = this.scene.add.circle(
             target.x,
@@ -1250,7 +1250,7 @@ export class SkillSystem {
             0.2
         );
         targetIndicator.setStrokeStyle(4, 0xff0000);
-        
+
         // Warning phase
         this.scene.tweens.add({
             targets: targetIndicator,
@@ -1259,7 +1259,7 @@ export class SkillSystem {
             yoyo: true,
             repeat: 3
         });
-        
+
         // After warning, create multiple explosions
         this.scene.time.delayedCall(2000, () => {
             const bombCount = 8;
@@ -1270,12 +1270,12 @@ export class SkillSystem {
                     this.createExplosion(bombX, bombY, 60, effects.damage! / 2);
                 });
             }
-            
+
             targetIndicator.destroy();
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.8 });
-        
+
         return {
             type: TankClassType.DEMOLITION,
             startTime: Date.now(),
@@ -1284,7 +1284,7 @@ export class SkillSystem {
             visualEffects: [targetIndicator]
         };
     }
-    
+
     // Radar Scout skills
     private activateRadarScoutSkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
@@ -1296,19 +1296,19 @@ export class SkillSystem {
                 return this.radarScoutOrbitalStrike(player, targetPosition);
         }
     }
-    
+
     // Radar Scout Skill 1: Radar Sweep - Reveal all enemies and items
     private radarScoutRadarSweep(player: Player): ActiveSkill {
         const effects: SkillEffect = {
             duration: 10000,
             range: 800
         };
-        
+
         // Create radar sweep animation
         const radarSweep = this.scene.add.graphics();
         radarSweep.lineStyle(3, 0x00ff00, 0.8);
         radarSweep.fillStyle(0x00ff00, 0.1);
-        
+
         let sweepAngle = 0;
         const sweepInterval = this.scene.time.addEvent({
             delay: 50,
@@ -1317,19 +1317,19 @@ export class SkillSystem {
                 radarSweep.clear();
                 radarSweep.lineStyle(3, 0x00ff00, 0.8);
                 radarSweep.fillStyle(0x00ff00, 0.1);
-                
+
                 // Draw radar circle
                 radarSweep.strokeCircle(player.body.x, player.body.y, effects.range!);
-                
+
                 // Draw sweep line
                 const endX = player.body.x + Math.cos(sweepAngle) * effects.range!;
                 const endY = player.body.y + Math.sin(sweepAngle) * effects.range!;
                 radarSweep.lineBetween(player.body.x, player.body.y, endX, endY);
-                
+
                 sweepAngle += 0.1;
             }
         });
-        
+
         // In multiplayer, this would reveal hidden enemies
         if (gameStateManager.isGameActive()) {
             const remotePlayers = gameStateManager.getRemotePlayers();
@@ -1342,7 +1342,7 @@ export class SkillSystem {
                     0xff0000,
                     0.8
                 );
-                
+
                 this.scene.tweens.add({
                     targets: blip,
                     alpha: 0,
@@ -1353,9 +1353,9 @@ export class SkillSystem {
                 });
             });
         }
-        
+
         this.scene.sound.play(AssetsAudioEnum.SPEED_UP, { volume: 0.6 });
-        
+
         return {
             type: TankClassType.RADAR_SCOUT,
             startTime: Date.now(),
@@ -1368,7 +1368,7 @@ export class SkillSystem {
             }
         };
     }
-    
+
     // Ice Tank skills
     private activateIceTankSkill(player: Player, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1', targetPosition?: { x: number, y: number }): ActiveSkill | null {
         switch (skillSlot) {
@@ -1380,7 +1380,7 @@ export class SkillSystem {
                 return this.iceTankAbsoluteZero(player);
         }
     }
-    
+
     // Ice Tank Skill 1: Frost Nova - AOE ice damage with slow effect
     private iceTankFrostNova(player: Player): ActiveSkill {
         const effects: SkillEffect = {
@@ -1388,10 +1388,10 @@ export class SkillSystem {
             damage: 120,
             range: 100
         };
-        
+
         // Store affected enemies for slowing effect
         const affectedEnemies: any[] = [];
-        
+
         // Create frost nova visual effect
         const frostNova = this.scene.add.circle(
             player.body.x,
@@ -1402,7 +1402,7 @@ export class SkillSystem {
         );
         frostNova.setStrokeStyle(4, 0x0099dd);
         frostNova.setDepth(50);
-        
+
         // Expand frost nova
         this.scene.tweens.add({
             targets: frostNova,
@@ -1413,7 +1413,7 @@ export class SkillSystem {
                 frostNova.destroy();
             }
         });
-        
+
         // Create ice particles using bullet sprite as fallback
         const iceParticles = this.scene.add.particles(0, 0, AssetsEnum.BULLET_BLUE_1, {
             scale: { start: 0.3, end: 0 },
@@ -1425,16 +1425,16 @@ export class SkillSystem {
             speed: { min: 30, max: 100 },
             angle: { min: 0, max: 360 }
         });
-        
+
         iceParticles.setPosition(player.body.x, player.body.y);
-        
+
         // Damage local AI enemies and apply slow effect
         const gameScene = this.scene as any;
         if (gameScene.gameManager && gameScene.gameManager.enemies) {
-            const enemyList = gameScene.gameManager.enemies.children ? 
-                gameScene.gameManager.enemies.children.entries : 
+            const enemyList = gameScene.gameManager.enemies.children ?
+                gameScene.gameManager.enemies.children.entries :
                 gameScene.gameManager.enemies;
-                
+
             enemyList.forEach((enemy: any) => {
                 if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
                     const distance = Phaser.Math.Distance.Between(
@@ -1444,7 +1444,7 @@ export class SkillSystem {
                     if (distance <= effects.range!) {
                         // Apply damage to enemy
                         enemy.takeDamage(effects.damage!);
-                        
+
                         // Only apply slow effect if enemy is still alive after damage
                         if (enemy.isAlive && enemy.stats) {
                             // Apply slow effect (freeze enemies to 10% speed)
@@ -1453,13 +1453,13 @@ export class SkillSystem {
                             }
                             enemy.stats.speed = enemy.originalSpeed * 0.1; // Slow to 10% speed
                             affectedEnemies.push(enemy);
-                            
+
                             // Create freeze effect on enemy
                             const freezeEffect = this.scene.add.circle(
                                 enemy.body.x, enemy.body.y, 25, 0x88ddff, 0.6
                             );
                             freezeEffect.setStrokeStyle(3, 0x0099dd);
-                            
+
                             this.scene.tweens.add({
                                 targets: freezeEffect,
                                 alpha: 0.3,
@@ -1479,13 +1479,13 @@ export class SkillSystem {
                                 }
                             });
                         }
-                        
+
                         console.log(`Frost Nova hit enemy for ${effects.damage!} damage and froze!`);
                     }
                 }
             });
         }
-        
+
         // In multiplayer, this would damage and slow nearby enemies
         if (gameStateManager.isGameActive()) {
             const nearbyPlayers = gameStateManager.getRemotePlayers().filter(p => {
@@ -1495,7 +1495,7 @@ export class SkillSystem {
                 );
                 return distance <= effects.range! && p.isAlive;
             });
-            
+
             nearbyPlayers.forEach(remotePlayer => {
                 // Report ice damage hit to server
                 gameStateManager.reportHit(
@@ -1506,17 +1506,17 @@ export class SkillSystem {
                 );
             });
         }
-        
+
         // Screen freeze effect for dramatic impact
         this.scene.cameras.main.flash(300, 200, 230, 255, true);
-        
+
         this.scene.sound.play(AssetsAudioEnum.ICE_FREEZE, { volume: 0.6 });
-        
+
         // Clean up particles after effect
         this.scene.time.delayedCall(effects.duration, () => {
             iceParticles.destroy();
         });
-        
+
         return {
             type: TankClassType.ICE_TANK,
             startTime: Date.now(),
@@ -1536,15 +1536,15 @@ export class SkillSystem {
             }
         };
     }
-    
+
     // Mage Skill 2: Lightning Bolt - Instant chain lightning damage
     private mageLightningBolt(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
-        const effects: SkillEffect = { 
-            duration: 800, 
+        const effects: SkillEffect = {
+            duration: 800,
             damage: 180,
             range: 400 // Lightning range
         };
-        
+
         // Create main lightning bolt visual
         const lightning = this.scene.add.rectangle(
             player.barrel.x, player.barrel.y,
@@ -1552,23 +1552,23 @@ export class SkillSystem {
         );
         lightning.setRotation(player.barrel.rotation);
         lightning.setOrigin(0, 0.5);
-        
+
         // Calculate lightning path
         const angle = player.barrel.rotation;
         const startX = player.barrel.x;
         const startY = player.barrel.y;
         const endX = startX + Math.cos(angle) * effects.range!;
         const endY = startY + Math.sin(angle) * effects.range!;
-        
+
         // Find all enemies in lightning path and damage them
         const gameScene = this.scene as any;
         const hitEnemies: any[] = [];
-        
+
         if (gameScene.gameManager && gameScene.gameManager.enemies) {
-            const enemyList = gameScene.gameManager.enemies.children ? 
-                gameScene.gameManager.enemies.children.entries : 
+            const enemyList = gameScene.gameManager.enemies.children ?
+                gameScene.gameManager.enemies.children.entries :
                 gameScene.gameManager.enemies;
-                
+
             enemyList.forEach((enemy: any) => {
                 if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
                     // Check if enemy is close to the lightning path
@@ -1576,25 +1576,25 @@ export class SkillSystem {
                         startX, startY, endX, endY,
                         enemy.body.x, enemy.body.y
                     );
-                    
+
                     const distanceFromStart = Phaser.Math.Distance.Between(
                         startX, startY, enemy.body.x, enemy.body.y
                     );
-                    
+
                     // Hit if within 30 pixels of lightning path and within range
                     if (distanceToLine <= 30 && distanceFromStart <= effects.range!) {
                         hitEnemies.push(enemy);
-                        
+
                         // Apply damage
                         enemy.takeDamage(effects.damage!);
-                        
+
                         console.log(`Lightning bolt hit ${enemy.constructor.name} for ${effects.damage!} damage`);
-                        
+
                         // Create lightning hit effect
                         const lightningHit = this.scene.add.circle(
                             enemy.body.x, enemy.body.y, 25, 0xffff00, 0.9
                         );
-                        
+
                         // Create branching lightning to enemy
                         const branchLightning = this.scene.add.line(
                             0, 0,
@@ -1604,7 +1604,7 @@ export class SkillSystem {
                         );
                         branchLightning.setLineWidth(4);
                         branchLightning.setDepth(50);
-                        
+
                         this.scene.tweens.add({
                             targets: [lightningHit, branchLightning],
                             alpha: 0,
@@ -1618,35 +1618,35 @@ export class SkillSystem {
                 }
             });
         }
-        
+
         // Chain lightning effect - hit nearby enemies of already hit enemies
         const chainRange = 120;
         const chainDamage = Math.floor(effects.damage! * 0.6); // 60% damage for chain
         const alreadyChained = new Set(hitEnemies);
-        
+
         hitEnemies.forEach(hitEnemy => {
             if (gameScene.gameManager && gameScene.gameManager.enemies) {
-                const enemyList = gameScene.gameManager.enemies.children ? 
-                    gameScene.gameManager.enemies.children.entries : 
+                const enemyList = gameScene.gameManager.enemies.children ?
+                    gameScene.gameManager.enemies.children.entries :
                     gameScene.gameManager.enemies;
-                    
+
                 enemyList.forEach((nearbyEnemy: any) => {
-                    if (nearbyEnemy && nearbyEnemy.isAlive && nearbyEnemy.body && nearbyEnemy.body.active && 
+                    if (nearbyEnemy && nearbyEnemy.isAlive && nearbyEnemy.body && nearbyEnemy.body.active &&
                         !alreadyChained.has(nearbyEnemy)) {
-                        
+
                         const chainDistance = Phaser.Math.Distance.Between(
                             hitEnemy.body.x, hitEnemy.body.y,
                             nearbyEnemy.body.x, nearbyEnemy.body.y
                         );
-                        
+
                         if (chainDistance <= chainRange) {
                             alreadyChained.add(nearbyEnemy);
-                            
+
                             // Apply chain damage
                             nearbyEnemy.takeDamage(chainDamage);
-                            
+
                             console.log(`Lightning chain hit ${nearbyEnemy.constructor.name} for ${chainDamage} damage`);
-                            
+
                             // Create chain lightning visual
                             const chainLightning = this.scene.add.line(
                                 0, 0,
@@ -1656,11 +1656,11 @@ export class SkillSystem {
                             );
                             chainLightning.setLineWidth(3);
                             chainLightning.setDepth(51);
-                            
+
                             const chainHit = this.scene.add.circle(
                                 nearbyEnemy.body.x, nearbyEnemy.body.y, 20, 0x66ff66, 0.8
                             );
-                            
+
                             this.scene.tweens.add({
                                 targets: [chainLightning, chainHit],
                                 alpha: 0,
@@ -1675,7 +1675,7 @@ export class SkillSystem {
                 });
             }
         });
-        
+
         // Main lightning animation
         this.scene.tweens.add({
             targets: lightning,
@@ -1684,11 +1684,11 @@ export class SkillSystem {
             repeat: 3,
             onComplete: () => lightning.destroy()
         });
-        
+
         // Screen flash for lightning effect
         this.scene.cameras.main.flash(100, 255, 255, 0, true);
         this.scene.sound.play(AssetsAudioEnum.SPEED_UP, { volume: 0.7 });
-        
+
         return {
             type: TankClassType.MAGE,
             startTime: Date.now(),
@@ -1697,45 +1697,45 @@ export class SkillSystem {
             visualEffects: [lightning]
         };
     }
-    
+
     // Mage Ultimate: Meteor - Battlefield-wide devastating meteor shower
     private mageMeteor(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
-        const effects: SkillEffect = { 
+        const effects: SkillEffect = {
             duration: 6000, // Longer duration for multiple meteors
             damage: 300, // Reduced per-meteor damage since it's area-wide
             range: 800 // Extremely wide range to cover entire battlefield
         };
-        
+
         // Get battlefield bounds
         const bounds = this.scene.physics.world.bounds;
         const centerX = bounds.x + bounds.width / 2;
         const centerY = bounds.y + bounds.height / 2;
-        
+
         // Create multiple meteors across the battlefield
         const meteorCount = 8; // Multiple meteors for wide coverage
         const meteors: Phaser.GameObjects.GameObject[] = [];
-        
+
         // Create warning indicators first
         const warningIndicators: Phaser.GameObjects.GameObject[] = [];
-        
+
         for (let i = 0; i < meteorCount; i++) {
             // Spread meteors across the battlefield
             const angle = (i / meteorCount) * Math.PI * 2;
             const distance = Math.random() * (effects.range! * 0.4) + 100; // Random distance from center
-            
+
             const meteorTargetX = centerX + Math.cos(angle) * distance + (Math.random() - 0.5) * 200;
             const meteorTargetY = centerY + Math.sin(angle) * distance + (Math.random() - 0.5) * 200;
-            
+
             // Clamp to battlefield bounds
             const targetX = Phaser.Math.Clamp(meteorTargetX, bounds.x + 50, bounds.x + bounds.width - 50);
             const targetY = Phaser.Math.Clamp(meteorTargetY, bounds.y + 50, bounds.y + bounds.height - 50);
-            
+
             // Create warning indicator
             const warning = this.scene.add.circle(targetX, targetY, 80, 0xff0000, 0.3);
             warning.setStrokeStyle(4, 0xff4400);
             warning.setDepth(5);
             warningIndicators.push(warning);
-            
+
             // Warning animation
             this.scene.tweens.add({
                 targets: warning,
@@ -1746,14 +1746,14 @@ export class SkillSystem {
                 yoyo: true,
                 repeat: 2
             });
-            
+
             // Create meteor starting high above target
             const meteor = this.scene.add.sprite(targetX, targetY - 400, AssetsEnum.METEOR);
             meteor.setScale(0.8 + Math.random() * 0.4); // Random size variation (0.8 to 1.2 scale)
             meteor.setDepth(100);
             meteor.setRotation(Math.random() * Math.PI * 2); // Random rotation for variety
             meteors.push(meteor);
-            
+
             // Add fire trail for each meteor
             const meteorTrail = this.scene.add.particles(0, 0, AssetsEnum.BULLET_RED_1, {
                 scale: { start: 0.8, end: 0 },
@@ -1765,10 +1765,10 @@ export class SkillSystem {
             });
             meteorTrail.startFollow(meteor);
             meteors.push(meteorTrail);
-            
+
             // Stagger meteor impacts
             const impactDelay = 2000 + (i * 300); // 300ms between each meteor
-            
+
             // Meteor fall animation
             this.scene.tweens.add({
                 targets: meteor,
@@ -1779,18 +1779,18 @@ export class SkillSystem {
                 onComplete: () => {
                     // Create massive explosion
                     this.createExplosion(targetX, targetY, 120, effects.damage!); // Each meteor has good range
-                    
+
                     // Create additional screen effects for each impact
                     this.scene.cameras.main.shake(400, 0.008);
-                    
+
                     // Destroy meteor and trail
                     meteor.destroy();
                     meteorTrail.destroy();
-                    
+
                     console.log(`Meteor ${i + 1} impact at (${Math.round(targetX)}, ${Math.round(targetY)})`);
                 }
             });
-            
+
             // Add rotation animation during fall for more realistic meteor effect
             this.scene.tweens.add({
                 targets: meteor,
@@ -1800,7 +1800,7 @@ export class SkillSystem {
                 ease: 'Linear'
             });
         }
-        
+
         // Remove warning indicators after a delay
         this.scene.time.delayedCall(2500, () => {
             warningIndicators.forEach(warning => {
@@ -1809,17 +1809,17 @@ export class SkillSystem {
                 }
             });
         });
-        
+
         // Dramatic screen effects for ultimate activation
         this.scene.cameras.main.flash(1000, 100, 0, 0, true);
         this.scene.cameras.main.shake(2000, 0.005);
-        
+
         // Sound effects
         this.scene.sound.play(AssetsAudioEnum.ARTILLERY_WHISTLE, { volume: 0.9 });
         this.scene.time.delayedCall(2000, () => {
             this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 1.0 });
         });
-        
+
         return {
             type: TankClassType.MAGE,
             startTime: Date.now(),
@@ -1841,19 +1841,19 @@ export class SkillSystem {
             }
         };
     }
-    
+
     // Spy Skill 2: Smoke Bomb - Creates obscuring smoke cloud
     private spySmokeScreen(player: Player): ActiveSkill {
-        const effects: SkillEffect = { 
+        const effects: SkillEffect = {
             duration: 5000,
             range: 100
         };
-        
+
         // Throw smoke bomb projectile in front of player
         const throwDistance = 120;
         const throwX = player.body.x + Math.cos(player.barrel.rotation) * throwDistance;
         const throwY = player.body.y + Math.sin(player.barrel.rotation) * throwDistance;
-        
+
         // Create smoke bomb projectile
         const smokeBomb = this.scene.add.sprite(
             player.body.x,
@@ -1863,7 +1863,7 @@ export class SkillSystem {
         smokeBomb.setScale(0.8);
         smokeBomb.setTint(0x444444);
         smokeBomb.setDepth(10);
-        
+
         // Animate throwing the smoke bomb
         this.scene.tweens.add({
             targets: smokeBomb,
@@ -1875,7 +1875,7 @@ export class SkillSystem {
                 // Create smoke cloud at impact location
                 const smokeCloud = this.scene.add.circle(throwX, throwY, 20, 0x666666, 0.8);
                 smokeCloud.setDepth(player.body.depth + 1);
-                
+
                 // Create multiple smoke particles for better effect
                 const smokeParticles = this.scene.add.particles(throwX, throwY, AssetsEnum.BULLET_DARK_1, {
                     scale: { start: 0.5, end: 1.2 },
@@ -1887,7 +1887,7 @@ export class SkillSystem {
                     speed: { min: 20, max: 60 },
                     angle: { min: 0, max: 360 }
                 });
-                
+
                 // Expand smoke cloud
                 this.scene.tweens.add({
                     targets: smokeCloud,
@@ -1904,15 +1904,15 @@ export class SkillSystem {
                         });
                     }
                 });
-                
+
                 // In a full implementation, this would:
                 // - Break enemy targeting/line of sight
                 // - Hide players inside the smoke from enemies
                 // - Provide concealment for repositioning
-                
+
                 // Store original invisibility state
                 const wasInvisible = player.isInvisible;
-                
+
                 // Create smoke concealment effect
                 const checkSmokeInterval = this.scene.time.addEvent({
                     delay: 200,
@@ -1923,7 +1923,7 @@ export class SkillSystem {
                                 player.body.x, player.body.y,
                                 throwX, throwY
                             );
-                            
+
                             // If player is inside smoke cloud, apply concealment
                             if (distanceToSmoke <= effects.range!) {
                                 if (!(player as any).inSmokeCloud) {
@@ -1940,13 +1940,13 @@ export class SkillSystem {
                                 if ((player as any).inSmokeCloud) {
                                     const wasInvisibleBefore = (player as any).wasInvisibleBeforeSmoke || false;
                                     player.isInvisible = wasInvisibleBefore;
-                                    
+
                                     // Only restore alpha if not invisible from other sources (like cloak)
                                     if (!wasInvisibleBefore) {
                                         player.body.setAlpha(1);
                                         player.barrel.setAlpha(1);
                                     }
-                                    
+
                                     delete (player as any).inSmokeCloud;
                                     delete (player as any).wasInvisibleBeforeSmoke;
                                     console.log('Player left smoke cloud - visibility restored');
@@ -1955,35 +1955,35 @@ export class SkillSystem {
                         }
                     }
                 });
-                
+
                 // Clean up smoke particles and effects
                 this.scene.time.delayedCall(effects.duration, () => {
                     smokeParticles.destroy();
                     checkSmokeInterval.destroy();
-                    
+
                     // Restore player visibility if they were in smoke
                     if ((player as any).inSmokeCloud) {
                         const wasInvisibleBefore = (player as any).wasInvisibleBeforeSmoke || false;
                         player.isInvisible = wasInvisibleBefore;
-                        
+
                         // Only restore alpha if not invisible from other sources
                         if (!wasInvisibleBefore) {
                             player.body.setAlpha(1);
                             player.barrel.setAlpha(1);
                         }
-                        
+
                         delete (player as any).inSmokeCloud;
                         delete (player as any).wasInvisibleBeforeSmoke;
                         console.log('Smoke cloud expired - player visibility restored');
                     }
                 });
-                
+
                 smokeBomb.destroy();
             }
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.STEALTH_ACTIVATE, { volume: 0.4 });
-        
+
         return {
             type: TankClassType.SPY,
             startTime: Date.now(),
@@ -1995,39 +1995,39 @@ export class SkillSystem {
                 if ((player as any).inSmokeCloud) {
                     const wasInvisibleBefore = (player as any).wasInvisibleBeforeSmoke || false;
                     player.isInvisible = wasInvisibleBefore;
-                    
+
                     // Only restore alpha if not invisible from other sources
                     if (!wasInvisibleBefore) {
                         player.body.setAlpha(1);
                         player.barrel.setAlpha(1);
                     }
-                    
+
                     delete (player as any).inSmokeCloud;
                     delete (player as any).wasInvisibleBeforeSmoke;
                 }
             }
         };
     }
-    
+
     // Spy Ultimate: Assassination - Teleport to enemy and debuff them
     private spyAssassination(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
-        const effects: SkillEffect = { 
+        const effects: SkillEffect = {
             duration: 3000, // Duration of debuff effect
             damage: 350,
             damageReduction: -0.3, // Reduce enemy defense by 30%
             range: 300 // Max teleport range
         };
-        
+
         // Find nearest enemy to teleport to
         let targetEnemy: any = null;
         let closestDistance = effects.range!;
-        
+
         const gameScene = this.scene as any;
         if (gameScene.gameManager && gameScene.gameManager.enemies) {
-            const enemyList = gameScene.gameManager.enemies.children ? 
-                gameScene.gameManager.enemies.children.entries : 
+            const enemyList = gameScene.gameManager.enemies.children ?
+                gameScene.gameManager.enemies.children.entries :
                 gameScene.gameManager.enemies;
-                
+
             enemyList.forEach((enemy: any) => {
                 if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
                     const distance = Phaser.Math.Distance.Between(
@@ -2041,22 +2041,22 @@ export class SkillSystem {
                 }
             });
         }
-        
+
         if (!targetEnemy) {
             // No valid target found, just do a short stealth
             console.log('No enemy target found for assassination');
             return this.spyCloak(player);
         }
-        
+
         // Store original position for escape
         const originalX = player.body.x;
         const originalY = player.body.y;
-        
+
         // Phase 1: Disappear
         player.body.setAlpha(0.1);
         player.barrel.setAlpha(0.1);
         player.isInvisible = true;
-        
+
         // Phase 2: Teleport behind target (after 300ms)
         this.scene.time.delayedCall(300, () => {
             // Calculate position behind the target
@@ -2064,27 +2064,27 @@ export class SkillSystem {
             const targetAngle = targetEnemy.body.rotation || 0;
             const teleportX = targetEnemy.body.x - Math.cos(targetAngle) * behindDistance;
             const teleportY = targetEnemy.body.y - Math.sin(targetAngle) * behindDistance;
-            
+
             // Teleport player
             player.body.setPosition(teleportX, teleportY);
-            
+
             // Face the target
             const angleToTarget = Phaser.Math.Angle.Between(
                 player.body.x, player.body.y,
                 targetEnemy.body.x, targetEnemy.body.y
             );
             player.barrel.setRotation(angleToTarget);
-            
+
             // Reappear with attack
             player.body.setAlpha(1);
             player.barrel.setAlpha(1);
             player.isInvisible = false;
-            
+
             // Apply damage to target
             if (targetEnemy.takeDamage) {
                 targetEnemy.takeDamage(effects.damage!);
             }
-            
+
             // Apply debuff to target (reduce attack and defense)
             if (targetEnemy.stats) {
                 if (!targetEnemy.originalDebuffStats) {
@@ -2093,19 +2093,19 @@ export class SkillSystem {
                         def: targetEnemy.stats.def
                     };
                 }
-                
+
                 // Reduce enemy attack and defense by 50%
                 targetEnemy.stats.atk = targetEnemy.originalDebuffStats.atk * 0.5;
                 targetEnemy.stats.def = targetEnemy.originalDebuffStats.def * 0.5;
                 targetEnemy.isDebuffed = true;
-                
+
                 // Create debuff visual effect on enemy
                 const debuffEffect = this.scene.add.circle(
                     targetEnemy.body.x, targetEnemy.body.y, 30, 0x8800ff, 0.6
                 );
                 debuffEffect.setStrokeStyle(3, 0x4400aa);
                 debuffEffect.setDepth(targetEnemy.body.depth + 1);
-                
+
                 this.scene.tweens.add({
                     targets: debuffEffect,
                     alpha: 0.3,
@@ -2121,7 +2121,7 @@ export class SkillSystem {
                     },
                     onComplete: () => {
                         debuffEffect.destroy();
-                        
+
                         // Remove debuff from enemy
                         if (targetEnemy && targetEnemy.isDebuffed && targetEnemy.originalDebuffStats) {
                             targetEnemy.stats.atk = targetEnemy.originalDebuffStats.atk;
@@ -2132,10 +2132,10 @@ export class SkillSystem {
                         }
                     }
                 });
-                
+
                 console.log(`Assassination hit ${targetEnemy.constructor.name} for ${effects.damage} damage and applied debuff`);
             }
-            
+
             // Create impact effect
             const impactEffect = this.scene.add.circle(
                 targetEnemy.body.x, targetEnemy.body.y, 40, 0xff0000, 0.8
@@ -2147,14 +2147,14 @@ export class SkillSystem {
                 duration: 400,
                 onComplete: () => impactEffect.destroy()
             });
-            
+
             // Phase 3: Quick escape after 800ms
             this.scene.time.delayedCall(800, () => {
                 // Fade out
                 player.body.setAlpha(0.1);
                 player.barrel.setAlpha(0.1);
                 player.isInvisible = true;
-                
+
                 // Teleport to safe distance (200ms later)
                 this.scene.time.delayedCall(200, () => {
                     // Calculate escape position (opposite direction from target)
@@ -2162,28 +2162,28 @@ export class SkillSystem {
                     const escapeDistance = 150;
                     const escapeX = player.body.x + Math.cos(escapeAngle) * escapeDistance;
                     const escapeY = player.body.y + Math.sin(escapeAngle) * escapeDistance;
-                    
+
                     // Ensure escape position is within bounds
                     const bounds = this.scene.physics.world.bounds;
                     const finalEscapeX = Phaser.Math.Clamp(escapeX, bounds.x + 50, bounds.x + bounds.width - 50);
                     const finalEscapeY = Phaser.Math.Clamp(escapeY, bounds.y + 50, bounds.y + bounds.height - 50);
-                    
+
                     player.body.setPosition(finalEscapeX, finalEscapeY);
-                    
+
                     // Reappear
                     player.body.setAlpha(1);
                     player.barrel.setAlpha(1);
                     player.isInvisible = false;
-                    
+
                     console.log('Spy escaped after assassination');
                 });
             });
         });
-        
+
         // Screen flash for dramatic effect
         this.scene.cameras.main.flash(200, 100, 0, 100, true);
         this.scene.sound.play(AssetsAudioEnum.DISAPPEAR, { volume: 0.8 });
-        
+
         return {
             type: TankClassType.SPY,
             startTime: Date.now(),
@@ -2199,7 +2199,7 @@ export class SkillSystem {
                     delete targetEnemy.originalDebuffStats;
                     delete targetEnemy.isDebuffed;
                 }
-                
+
                 // Ensure player is visible
                 if (player.body && player.barrel) {
                     player.body.setAlpha(1);
@@ -2209,25 +2209,25 @@ export class SkillSystem {
             }
         };
     }
-    
+
     private demolitionMineField(player: Player): ActiveSkill {
         const effects: SkillEffect = { duration: 2000 };
         const mines: Phaser.GameObjects.Sprite[] = [];
-        
+
         for (let i = 0; i < 6; i++) {
             const angle = (i / 6) * Math.PI * 2;
             const distance = 100;
             const mineX = player.body.x + Math.cos(angle) * distance;
             const mineY = player.body.y + Math.sin(angle) * distance;
-            
+
             const mine = this.scene.add.sprite(mineX, mineY, AssetsEnum.BULLET_RED_1);
             mine.setTint(0x444444);
             mine.setScale(0.5);
             mines.push(mine);
         }
-        
+
         this.scene.sound.play(AssetsAudioEnum.ARTILLERY_WHISTLE, { volume: 0.5 });
-        
+
         return {
             type: TankClassType.DEMOLITION,
             startTime: Date.now(),
@@ -2239,18 +2239,18 @@ export class SkillSystem {
             }
         };
     }
-    
+
     private demolitionNuclearStrike(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
         const effects: SkillEffect = { duration: 5000, damage: 600, range: 250 };
         const target = targetPosition || { x: player.body.x, y: player.body.y - 300 };
-        
+
         this.scene.time.delayedCall(3000, () => {
             this.createExplosion(target.x, target.y, effects.range!, effects.damage!);
             this.scene.cameras.main.flash(1000, 255, 255, 255, true);
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 1.0 });
-        
+
         return {
             type: TankClassType.DEMOLITION,
             startTime: Date.now(),
@@ -2259,12 +2259,12 @@ export class SkillSystem {
             visualEffects: []
         };
     }
-    
+
     private radarScoutEMPBlast(player: Player): ActiveSkill {
         const effects: SkillEffect = { duration: 3000, range: 150 };
-        
+
         const emp = this.scene.add.circle(player.body.x, player.body.y, 10, 0x00aaff, 0.7);
-        
+
         this.scene.tweens.add({
             targets: emp,
             scale: effects.range! / 10,
@@ -2272,9 +2272,9 @@ export class SkillSystem {
             duration: 1000,
             onComplete: () => emp.destroy()
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.SPEED_UP, { volume: 0.5 });
-        
+
         return {
             type: TankClassType.RADAR_SCOUT,
             startTime: Date.now(),
@@ -2283,17 +2283,17 @@ export class SkillSystem {
             visualEffects: [emp]
         };
     }
-    
+
     private radarScoutOrbitalStrike(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
         const effects: SkillEffect = { duration: 3000, damage: 250 };
         const target = targetPosition || { x: player.body.x, y: player.body.y - 200 };
-        
+
         this.scene.time.delayedCall(2000, () => {
             this.createExplosion(target.x, target.y, 80, effects.damage!);
         });
-        
+
         this.scene.sound.play(AssetsAudioEnum.ARTILLERY_WHISTLE, { volume: 0.7 });
-        
+
         return {
             type: TankClassType.RADAR_SCOUT,
             startTime: Date.now(),
@@ -2302,15 +2302,15 @@ export class SkillSystem {
             visualEffects: []
         };
     }
-    
+
     private iceTankIceWall(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
         const effects: SkillEffect = { duration: 8000, range: 120 };
-        
+
         // Calculate wall position in front of the tank
         const wallDistance = 100;
         const wallX = player.body.x + Math.cos(player.barrel.rotation) * wallDistance;
         const wallY = player.body.y + Math.sin(player.barrel.rotation) * wallDistance;
-        
+
         // Create visual wall
         const wall = this.scene.add.rectangle(
             wallX, wallY,
@@ -2319,19 +2319,19 @@ export class SkillSystem {
         wall.setRotation(player.barrel.rotation + Math.PI / 2);
         wall.setDepth(10);
         wall.setStrokeStyle(4, 0x0099dd);
-        
+
         // Create a single large collision body for the wall
         const wallCollisionBody = this.scene.add.rectangle(
             wallX, wallY,
             effects.range!, 35, 0x88ddff, 0
         );
         wallCollisionBody.setRotation(player.barrel.rotation + Math.PI / 2);
-        
+
         // Enable physics for the wall
         this.scene.physics.world.enable(wallCollisionBody);
         const wallBody = wallCollisionBody.body as Phaser.Physics.Arcade.Body;
         wallBody.setImmovable(true);
-        
+
         // Create ice particles around the wall
         const wallParticles = this.scene.add.particles(wallX, wallY, AssetsEnum.BULLET_BLUE_1, {
             scale: { start: 0.2, end: 0 },
@@ -2343,7 +2343,7 @@ export class SkillSystem {
             speed: { min: 10, max: 30 },
             angle: { min: 0, max: 360 }
         });
-        
+
         // Set up collision detection using the existing bullet management system
         const gameScene = this.scene as any;
         const bulletCollisionInterval = this.scene.time.addEvent({
@@ -2353,13 +2353,13 @@ export class SkillSystem {
                 // Check collisions with all player bullets
                 if (gameScene.gameManager && gameScene.gameManager.player) {
                     const playerBullets = gameScene.gameManager.player.bullets || [];
-                    
+
                     playerBullets.forEach((bullet: any) => {
                         if (bullet && bullet.sprite && bullet.sprite.active && wallCollisionBody.active) {
                             // Check if bullet overlaps with wall
                             const bulletBounds = bullet.sprite.getBounds();
                             const wallBounds = wallCollisionBody.getBounds();
-                            
+
                             if (Phaser.Geom.Rectangle.Overlaps(bulletBounds, wallBounds)) {
                                 // Create ice impact effect
                                 const impactEffect = this.scene.add.circle(
@@ -2372,20 +2372,20 @@ export class SkillSystem {
                                     duration: 300,
                                     onComplete: () => impactEffect.destroy()
                                 });
-                                
+
                                 // Remove bullet from player's bullet array
                                 const bulletIndex = gameScene.gameManager.player.bullets.indexOf(bullet);
                                 if (bulletIndex > -1) {
                                     gameScene.gameManager.player.bullets.splice(bulletIndex, 1);
                                 }
-                                
+
                                 bullet.destroy();
                                 console.log('Ice wall blocked a player bullet!');
                             }
                         }
                     });
                 }
-                
+
                 // Check collisions with all enemy bullets
                 if (gameScene.gameManager && gameScene.gameManager.enemies) {
                     gameScene.gameManager.enemies.forEach((enemy: any) => {
@@ -2395,7 +2395,7 @@ export class SkillSystem {
                                     // Check if bullet overlaps with wall
                                     const bulletBounds = bullet.sprite.getBounds();
                                     const wallBounds = wallCollisionBody.getBounds();
-                                    
+
                                     if (Phaser.Geom.Rectangle.Overlaps(bulletBounds, wallBounds)) {
                                         // Create ice impact effect
                                         const impactEffect = this.scene.add.circle(
@@ -2408,10 +2408,10 @@ export class SkillSystem {
                                             duration: 300,
                                             onComplete: () => impactEffect.destroy()
                                         });
-                                        
+
                                         // Remove bullet from enemy's bullet array
                                         enemy.bullets.splice(bulletIndex, 1);
-                                        
+
                                         bullet.destroy();
                                         console.log('Ice wall blocked an enemy bullet!');
                                     }
@@ -2422,7 +2422,7 @@ export class SkillSystem {
                 }
             }
         });
-        
+
         // Set up enemy collision using overlap detection
         const enemyCollision = this.scene.physics.add.overlap(
             wallCollisionBody,
@@ -2438,17 +2438,17 @@ export class SkillSystem {
                     const pushForce = 80;
                     const pushX = Math.cos(pushAngle) * pushForce;
                     const pushY = Math.sin(pushAngle) * pushForce;
-                    
+
                     enemy.body.x += pushX;
                     enemy.body.y += pushY;
-                    
+
                     // Apply slow effect
                     if (!enemy.wallSlowed) {
                         enemy.wallSlowed = true;
                         enemy.wallOriginalSpeed = enemy.stats.speed;
                         enemy.stats.speed = enemy.wallOriginalSpeed * 0.2; // 20% speed
                         console.log('Enemy blocked and slowed by ice wall!');
-                        
+
                         // Remove slow after 3 seconds
                         this.scene.time.delayedCall(3000, () => {
                             if (enemy && enemy.wallSlowed && enemy.stats && enemy.wallOriginalSpeed) {
@@ -2461,9 +2461,9 @@ export class SkillSystem {
                 }
             }
         );
-        
+
         this.scene.sound.play(AssetsAudioEnum.ICE_FREEZE, { volume: 0.5 });
-        
+
         return {
             type: TankClassType.ICE_TANK,
             startTime: Date.now(),
@@ -2475,12 +2475,12 @@ export class SkillSystem {
                 if (bulletCollisionInterval && !bulletCollisionInterval.hasDispatched) {
                     bulletCollisionInterval.destroy();
                 }
-                
+
                 // Clean up enemy collision
                 if (enemyCollision && enemyCollision.destroy) {
                     enemyCollision.destroy();
                 }
-                
+
                 // Restore speed to any slowed enemies
                 const gameScene = this.scene as any;
                 if (gameScene.gameManager && gameScene.gameManager.enemies) {
@@ -2492,7 +2492,7 @@ export class SkillSystem {
                         }
                     });
                 }
-                
+
                 // Destroy visual elements
                 wallParticles.destroy();
                 wall.destroy();
@@ -2501,17 +2501,17 @@ export class SkillSystem {
             }
         };
     }
-    
+
     private iceTankAbsoluteZero(player: Player): ActiveSkill {
         const effects: SkillEffect = { duration: 8000, damage: 300, range: 300 };
-        
+
         // Store affected enemies for stunning effect
         const affectedEnemies: any[] = [];
-        
+
         const freeze = this.scene.add.circle(player.body.x, player.body.y, 20, 0x88ddff, 0.8);
         freeze.setStrokeStyle(8, 0x0099dd);
         freeze.setDepth(100);
-        
+
         // Create expanding freeze wave
         this.scene.tweens.add({
             targets: freeze,
@@ -2520,14 +2520,14 @@ export class SkillSystem {
             duration: 2000,
             onComplete: () => freeze.destroy()
         });
-        
+
         // Damage and stun all enemies in range
         const gameScene = this.scene as any;
         if (gameScene.gameManager && gameScene.gameManager.enemies) {
-            const enemyList = gameScene.gameManager.enemies.children ? 
-                gameScene.gameManager.enemies.children.entries : 
+            const enemyList = gameScene.gameManager.enemies.children ?
+                gameScene.gameManager.enemies.children.entries :
                 gameScene.gameManager.enemies;
-                
+
             enemyList.forEach((enemy: any) => {
                 if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
                     const distance = Phaser.Math.Distance.Between(
@@ -2537,7 +2537,7 @@ export class SkillSystem {
                     if (distance <= effects.range!) {
                         // Apply massive damage
                         enemy.takeDamage(effects.damage!);
-                        
+
                         // Only apply stun effect if enemy is still alive after damage
                         if (enemy.isAlive && enemy.stats) {
                             // Freeze enemy completely (0 speed and disable firing)
@@ -2549,14 +2549,14 @@ export class SkillSystem {
                             enemy.stats.fireRate = 999999; // Prevent firing
                             enemy.isStunned = true;
                             affectedEnemies.push(enemy);
-                            
+
                             // Create freeze effect on enemy
                             const enemyFreezeEffect = this.scene.add.circle(
                                 enemy.body.x, enemy.body.y, 35, 0x88ddff, 0.7
                             );
                             enemyFreezeEffect.setStrokeStyle(4, 0x0099dd);
                             enemyFreezeEffect.setDepth(enemy.body.depth + 1);
-                            
+
                             // Pulsing freeze effect
                             this.scene.tweens.add({
                                 targets: enemyFreezeEffect,
@@ -2581,17 +2581,17 @@ export class SkillSystem {
                                 }
                             });
                         }
-                        
+
                         console.log(`Absolute Zero hit enemy for ${effects.damage!} damage and stunned!`);
                     }
                 }
             });
         }
-        
+
         // In multiplayer, damage all players on the battlefield
         if (gameStateManager.isGameActive()) {
             const allPlayers = gameStateManager.getRemotePlayers().filter(p => p.isAlive);
-            
+
             allPlayers.forEach(remotePlayer => {
                 const distance = Phaser.Math.Distance.Between(
                     player.body.x, player.body.y,
@@ -2608,7 +2608,7 @@ export class SkillSystem {
                 }
             });
         }
-        
+
         // Create ice shards falling from sky effect
         const iceShards = this.scene.add.particles(0, 0, AssetsEnum.BULLET_BLUE_3, {
             scale: { start: 0.5, end: 0.1 },
@@ -2623,17 +2623,17 @@ export class SkillSystem {
             x: { min: player.body.x - effects.range!, max: player.body.x + effects.range! },
             y: player.body.y - 200
         });
-        
+
         // Dramatic screen effects
         this.scene.cameras.main.flash(2000, 200, 230, 255, true);
         this.scene.cameras.main.shake(1000, 0.01);
         this.scene.sound.play(AssetsAudioEnum.ICE_FREEZE, { volume: 0.8 });
-        
+
         // Clean up ice shards after duration
         this.scene.time.delayedCall(effects.duration, () => {
             iceShards.destroy();
         });
-        
+
         return {
             type: TankClassType.ICE_TANK,
             startTime: Date.now(),
@@ -2656,12 +2656,12 @@ export class SkillSystem {
             }
         };
     }
-    
+
     // Update active skills
     update(deltaTime: number) {
         const currentTime = Date.now();
         const expiredSkills: string[] = [];
-        
+
         this.activeSkills.forEach((skill, playerId) => {
             // Check if skill has expired
             if (currentTime >= skill.startTime + skill.duration) {
@@ -2670,14 +2670,14 @@ export class SkillSystem {
                     console.log(`Skill ${skill.type} expiring for player ${playerId}`);
                     skill.onEnd(skill.player);
                 }
-                
+
                 // Clean up visual effects
                 skill.visualEffects?.forEach(effect => {
                     if (effect.active) {
                         effect.destroy();
                     }
                 });
-                
+
                 expiredSkills.push(playerId);
             } else {
                 // Update skill if needed
@@ -2686,13 +2686,13 @@ export class SkillSystem {
                 }
             }
         });
-        
+
         // Remove expired skills
         expiredSkills.forEach(playerId => {
             this.activeSkills.delete(playerId);
         });
     }
-    
+
     // Helper methods
     private isOnCooldown(player: Player, skillType: TankClassType): boolean {
         // This method is no longer used since we check cooldowns in Player.useSkill
@@ -2700,23 +2700,23 @@ export class SkillSystem {
         const cooldown = this.getSkillCooldown(skillType);
         return Date.now() < player.lastSkill1Used + cooldown;
     }
-    
+
     private getSkillCooldown(skillType: TankClassType, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1'): number {
         const cooldowns = {
             [TankClassType.BRUISER]: { skill1: 8000, skill2: 15000, ultimate: 45000 },
             [TankClassType.DEALER]: { skill1: 6000, skill2: 10000, ultimate: 35000 },
             [TankClassType.SUPPORTER]: { skill1: 10000, skill2: 12000, ultimate: 40000 },
             [TankClassType.VERSATILE]: { skill1: 5000, skill2: 8000, ultimate: 30000 },
-            [TankClassType.MAGE]: { skill1: 5000, skill2: 14000, ultimate: 50000 },
-            [TankClassType.SPY]: { skill1: 4000, skill2: 6000, ultimate: 25000 },
+            [TankClassType.MAGE]: { skill1: 6000, skill2: 6000, ultimate: 50000 },
+            [TankClassType.SPY]: { skill1: 10000, skill2: 8000, ultimate: 25000 },
             [TankClassType.DEMOLITION]: { skill1: 15000, skill2: 18000, ultimate: 60000 },
             [TankClassType.RADAR_SCOUT]: { skill1: 5000, skill2: 7000, ultimate: 30000 },
             [TankClassType.ICE_TANK]: { skill1: 8000, skill2: 12000, ultimate: 40000 }
         };
-        
+
         return cooldowns[skillType]?.[skillSlot] || 10000;
     }
-    
+
     private getBarrelTip(player: Player): { x: number, y: number } {
         const barrelLength = 40;
         return {
@@ -2724,26 +2724,26 @@ export class SkillSystem {
             y: player.barrel.y + Math.sin(player.barrel.rotation) * barrelLength
         };
     }
-    
+
     // Helper function to calculate distance from a point to a line segment
     private distanceToLine(x1: number, y1: number, x2: number, y2: number, px: number, py: number): number {
         const A = px - x1;
         const B = py - y1;
         const C = x2 - x1;
         const D = y2 - y1;
-        
+
         const dot = A * C + B * D;
         const lenSq = C * C + D * D;
-        
+
         if (lenSq === 0) {
             // Line segment is actually a point
             return Math.sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
         }
-        
+
         let param = dot / lenSq;
-        
+
         let xx, yy;
-        
+
         if (param < 0) {
             xx = x1;
             yy = y1;
@@ -2754,18 +2754,18 @@ export class SkillSystem {
             xx = x1 + param * C;
             yy = y1 + param * D;
         }
-        
+
         const dx = px - xx;
         const dy = py - yy;
         return Math.sqrt(dx * dx + dy * dy);
     }
-    
+
     private createExplosion(x: number, y: number, radius: number, damage: number) {
         // Create explosion visual
         const explosion = this.scene.add.sprite(x, y, AssetsEnum.EXPLOSION_1);
         explosion.setScale(radius / 50);
         explosion.setDepth(100);
-        
+
         // Animate explosion
         this.scene.tweens.add({
             targets: explosion,
@@ -2774,20 +2774,20 @@ export class SkillSystem {
             duration: 500,
             onComplete: () => explosion.destroy()
         });
-        
+
         // Screen shake
         this.scene.cameras.main.shake(300, 0.005);
-        
+
         // Sound
         this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.6 });
-        
+
         // Damage local AI enemies
         const gameScene = this.scene as any;
         if (gameScene.gameManager && gameScene.gameManager.enemies) {
-            const enemyList = gameScene.gameManager.enemies.children ? 
-                gameScene.gameManager.enemies.children.entries : 
+            const enemyList = gameScene.gameManager.enemies.children ?
+                gameScene.gameManager.enemies.children.entries :
                 gameScene.gameManager.enemies;
-                
+
             enemyList.forEach((enemy: any) => {
                 if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
                     const distance = Phaser.Math.Distance.Between(
@@ -2797,12 +2797,12 @@ export class SkillSystem {
                         // Calculate damage based on distance (closer = more damage)
                         const distanceRatio = 1 - (distance / radius);
                         const actualDamage = Math.floor(damage * Math.max(0.3, distanceRatio)); // Min 30% damage
-                        
+
                         // Apply damage to enemy
                         enemy.takeDamage(actualDamage);
-                        
+
                         console.log(`Explosion hit ${enemy.constructor.name} for ${actualDamage} damage at distance ${Math.round(distance)}`);
-                        
+
                         // Create hit effect on enemy
                         const hitEffect = this.scene.add.circle(
                             enemy.body.x, enemy.body.y, 20, 0xff4400, 0.8
@@ -2818,7 +2818,7 @@ export class SkillSystem {
                 }
             });
         }
-        
+
         // Damage remote players in multiplayer
         if (gameStateManager.isGameActive()) {
             const remotePlayers = gameStateManager.getRemotePlayers();
@@ -2830,7 +2830,7 @@ export class SkillSystem {
                     // Calculate damage based on distance
                     const distanceRatio = 1 - (distance / radius);
                     const actualDamage = Math.floor(damage * distanceRatio);
-                    
+
                     // Report hit to server
                     gameStateManager.reportHit(
                         remotePlayer.id,
@@ -2842,18 +2842,18 @@ export class SkillSystem {
             });
         }
     }
-    
+
     private findPlayerById(playerId: string): Player | null {
         // This is a simplified implementation
         // In a real game, you'd have a proper player manager
         return null;
     }
-    
+
     // Get remaining cooldown time for a player's skill
     getSkillCooldownRemaining(player: Player, skillType: TankClassType, skillSlot: 'skill1' | 'skill2' | 'ultimate' = 'skill1'): number {
         const cooldown = this.getSkillCooldown(skillType, skillSlot);
         let lastUsed: number;
-        
+
         switch (skillSlot) {
             case 'skill1':
                 lastUsed = player.lastSkill1Used;
@@ -2865,16 +2865,16 @@ export class SkillSystem {
                 lastUsed = player.lastUltimateUsed;
                 break;
         }
-        
+
         const elapsed = Date.now() - lastUsed;
         return Math.max(0, cooldown - elapsed);
     }
-    
+
     // Check if player has an active skill
     hasActiveSkill(playerId: string): boolean {
         return this.activeSkills.has(playerId);
     }
-    
+
     // Force end a skill
     endSkill(playerId: string): boolean {
         const skill = this.activeSkills.get(playerId);
@@ -2885,13 +2885,13 @@ export class SkillSystem {
                     skill.onEnd(player);
                 }
             }
-            
+
             skill.visualEffects?.forEach(effect => {
                 if (effect.active) {
                     effect.destroy();
                 }
             });
-            
+
             this.activeSkills.delete(playerId);
             return true;
         }
