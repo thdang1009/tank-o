@@ -668,8 +668,8 @@ export class Player {
                 break;
         }
         
-        // For now, use the existing skill system (will expand later)
-        return this.skillSystem.useSkill(this, this.tankClass, targetPosition);
+        // Pass skill slot to skill system
+        return this.skillSystem.useSkill(this, this.tankClass, targetPosition, skillSlot);
     }
 
     deactivateSkill() {
