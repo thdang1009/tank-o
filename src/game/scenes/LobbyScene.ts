@@ -77,6 +77,24 @@ export class LobbyScene extends Scene {
             strokeThickness: 3
         }).setOrigin(0.5, 0.5);
 
+        // Make lobby code clickable for copying
+        this.lobbyCodeText.setInteractive({ useHandCursor: true })
+            .on('pointerover', () => {
+                this.lobbyCodeText.setTint(0xdddd00); // Slightly darker on hover
+            })
+            .on('pointerout', () => {
+                this.lobbyCodeText.setTint(0xffffff); // Reset tint
+            })
+            .on('pointerdown', () => {
+                this.copyLobbyCode();
+            });
+
+        // Add copy instruction
+        this.add.text(512, 160, 'Click to copy', {
+            fontSize: '12px',
+            color: '#aaaaaa'
+        }).setOrigin(0.5, 0.5);
+
         // Create sections
         this.createPlayerListSection();
         this.createGameSettingsSection();
@@ -151,8 +169,15 @@ export class LobbyScene extends Scene {
      */
     private setupSocketEventListeners() {
         // Lobby events
-        this.socketService.on(SocketEvents.LOBBY_UPDATED, (updatedLobby: Lobby) => {
-            console.log('Lobby updated:', updatedLobby);
+        this.socketService.on(SocketEvents.LOBBY_UPDATED, (data: any) => {
+            console.log('LOBBY_UPDATED event received:', data);
+            console.log('Previous lobby:', this.lobby);
+            
+            // Handle wrapped lobby data from server
+            const updatedLobby = data.lobby || data;
+            console.log('Processed lobby data:', updatedLobby);
+            console.log('Updated lobby players:', updatedLobby.players);
+            
             this.lobby = updatedLobby;
             this.updatePlayerList();
             this.updateGameSettingsButtons();
@@ -209,10 +234,15 @@ export class LobbyScene extends Scene {
      * Update the player list based on current lobby data
      */
     private updatePlayerList() {
-        // Clear existing player list
-        this.playerListContainer.removeAll();
+        // Clear existing player list - destroy children to free memory
+        if (this.playerListContainer) {
+            this.playerListContainer.removeAll(true);
+        }
 
-        if (!this.lobby || !this.lobby.players) return;
+        if (!this.lobby || !this.lobby.players) {
+            console.log('No lobby or players data available for player list');
+            return;
+        }
 
         const players = this.lobby.players;
         const startY = -150; // Starting Y position
@@ -248,15 +278,23 @@ export class LobbyScene extends Scene {
             if (player.tankClass) {
                 const tankClassInfo = TankClasses[player.tankClass as TankClassType];
                 if (tankClassInfo) {
-                    const tankIcon = this.add.image(-80, 0, tankClassInfo.tankBodyAsset)
-                        .setScale(0.3);
-                    playerContainer.add(tankIcon);
+                    try {
+                        const tankIcon = this.add.image(-80, 0, tankClassInfo.tankBodyAsset)
+                            .setScale(0.3);
+                        playerContainer.add(tankIcon);
+                    } catch (e) {
+                        console.warn('Failed to load tank icon for player:', player.username, e);
+                    }
                 }
             }
 
             // Add to player list container
             this.playerListContainer.add(playerContainer);
         });
+        
+        // Ensure player list container is visible
+        this.playerListContainer.setVisible(true);
+        this.playerListContainer.setAlpha(1);
     }
 
     /**
@@ -396,11 +434,11 @@ export class LobbyScene extends Scene {
      * Create tank class selection section
      */
     private createTankClassSection() {
-        // Tank class selection container
-        const classBackground = this.add.rectangle(750, 450, 400, 200, 0x222244, 0.8)
+        // Tank class selection container - made taller for slider
+        const classBackground = this.add.rectangle(750, 450, 400, 250, 0x222244, 0.8)
             .setStrokeStyle(2, 0xffffff);
 
-        this.add.text(750, 380, 'SELECT YOUR TANK', {
+        this.add.text(750, 340, 'SELECT YOUR TANK', {
             fontSize: '24px',
             fontStyle: 'bold',
             color: '#ffffff',
@@ -408,54 +446,213 @@ export class LobbyScene extends Scene {
             strokeThickness: 3
         }).setOrigin(0.5, 0.5);
 
-        // Create tank class buttons
+        // Create tank slider
+        this.createTankSlider();
+    }
+
+    // Slider properties
+    private currentTankIndex: number = 0;
+    private tankSliderContainer!: GameObjects.Container;
+    private prevTankButton!: GameObjects.Container;
+    private nextTankButton!: GameObjects.Container;
+    private tankIndicators: GameObjects.Container[] = [];
+
+    /**
+     * Create tank slider for selection
+     */
+    private createTankSlider() {
         const classTypes = Object.values(TankClassType);
-        const startX = 600;
-        const spacing = 100;
+        
+        // Create main slider container
+        this.tankSliderContainer = this.add.container(750, 430);
+        
+        // Create tank display for current selection
+        this.createCurrentTankDisplay();
+        
+        // Create navigation buttons
+        this.createTankNavigationButtons();
+        
+        // Create tank indicators (dots)
+        this.createTankIndicators();
+        
+        // Setup keyboard navigation
+        this.setupTankKeyboardNavigation();
+        
+        // Initialize first tank
+        this.updateTankSliderDisplay();
+    }
 
+    /**
+     * Create current tank display in center
+     */
+    private createCurrentTankDisplay() {
+        const classTypes = Object.values(TankClassType);
+        
         this.classButtons = classTypes.map((classType: TankClassType, index: number) => {
-            const x = startX + (index * spacing);
-            const y = 450;
             const tankInfo = TankClasses[classType];
+            const container = this.add.container(0, 0);
+            container.setVisible(index === 0); // Only show first tank initially
 
-            const container = this.add.container(x, y);
+            // Background - larger for main display
+            const bg = this.add.rectangle(0, 0, 120, 100, 0x444488, 0.8)
+                .setStrokeStyle(3, 0xaaaaaa);
 
-            // Background
-            const bg = this.add.rectangle(0, 0, 80, 80, 0x444488, 0.8)
-                .setStrokeStyle(2, 0xaaaaaa);
+            // Tank icon - larger
+            const tankIcon = this.add.image(0, -15, tankInfo.tankBodyAsset)
+                .setScale(0.6);
 
-            // Tank icon
-            const tankIcon = this.add.image(0, -10, tankInfo.tankBodyAsset)
-                .setScale(0.4);
-
-            // Tank name
-            const nameText = this.add.text(0, 30, tankInfo.name, {
-                fontSize: '12px',
-                color: '#ffffff'
+            // Tank name - larger
+            const nameText = this.add.text(0, 35, tankInfo.name, {
+                fontSize: '14px',
+                color: '#ffffff',
+                fontStyle: 'bold'
             }).setOrigin(0.5, 0.5);
 
             container.add([bg, tankIcon, nameText]);
 
-            // Make interactive
+            // Make main tank clickable to select
             bg.setInteractive({ useHandCursor: true })
                 .on('pointerover', () => {
                     bg.setFillStyle(0x6666aa, 0.8);
-
-                    // Show description
                     this.showTankDescription(tankInfo);
                 })
                 .on('pointerout', () => {
                     bg.setFillStyle(0x444488, 0.8);
-
-                    // Hide description
                     this.hideTankDescription();
                 })
                 .on('pointerdown', () => {
                     this.selectTankClass(classType);
                 });
 
+            this.tankSliderContainer.add(container);
             return container;
         });
+    }
+
+    /**
+     * Create navigation buttons for tank slider
+     */
+    private createTankNavigationButtons() {
+        // Previous button
+        this.prevTankButton = this.add.container(680, 430);
+        const prevBg = this.add.circle(0, 0, 20, 0x444488, 0.8)
+            .setStrokeStyle(2, 0xffffff);
+        const prevArrow = this.add.text(0, 0, '◀', {
+            fontSize: '16px',
+            color: '#ffffff'
+        }).setOrigin(0.5, 0.5);
+        
+        this.prevTankButton.add([prevBg, prevArrow]);
+        
+        prevBg.setInteractive({ useHandCursor: true })
+            .on('pointerover', () => prevBg.setFillStyle(0x6666aa, 0.8))
+            .on('pointerout', () => prevBg.setFillStyle(0x444488, 0.8))
+            .on('pointerdown', () => this.previousTank());
+
+        // Next button
+        this.nextTankButton = this.add.container(820, 430);
+        const nextBg = this.add.circle(0, 0, 20, 0x444488, 0.8)
+            .setStrokeStyle(2, 0xffffff);
+        const nextArrow = this.add.text(0, 0, '▶', {
+            fontSize: '16px',
+            color: '#ffffff'
+        }).setOrigin(0.5, 0.5);
+        
+        this.nextTankButton.add([nextBg, nextArrow]);
+        
+        nextBg.setInteractive({ useHandCursor: true })
+            .on('pointerover', () => nextBg.setFillStyle(0x6666aa, 0.8))
+            .on('pointerout', () => nextBg.setFillStyle(0x444488, 0.8))
+            .on('pointerdown', () => this.nextTank());
+    }
+
+    /**
+     * Create tank indicators (dots)
+     */
+    private createTankIndicators() {
+        const classTypes = Object.values(TankClassType);
+        const totalWidth = classTypes.length * 20;
+        const startX = 750 - (totalWidth / 2);
+        
+        classTypes.forEach((classType, index) => {
+            const indicator = this.add.container(startX + (index * 20), 520);
+            
+            const dot = this.add.circle(0, 0, 5, index === 0 ? 0xffffff : 0x666666, 0.8)
+                .setStrokeStyle(1, 0xaaaaaa);
+            indicator.add(dot);
+            
+            dot.setInteractive({ useHandCursor: true })
+                .on('pointerdown', () => this.selectTankByIndex(index));
+            
+            this.tankIndicators.push(indicator);
+        });
+    }
+
+    /**
+     * Setup keyboard navigation for tank slider
+     */
+    private setupTankKeyboardNavigation() {
+        if (this.input.keyboard) {
+            this.input.keyboard.on('keydown-LEFT', () => this.previousTank());
+            this.input.keyboard.on('keydown-RIGHT', () => this.nextTank());
+            this.input.keyboard.on('keydown-A', () => this.previousTank());
+            this.input.keyboard.on('keydown-D', () => this.nextTank());
+        }
+    }
+
+    /**
+     * Navigate to previous tank
+     */
+    private previousTank() {
+        const classTypes = Object.values(TankClassType);
+        if (this.currentTankIndex > 0) {
+            this.selectTankByIndex(this.currentTankIndex - 1);
+        }
+    }
+
+    /**
+     * Navigate to next tank
+     */
+    private nextTank() {
+        const classTypes = Object.values(TankClassType);
+        if (this.currentTankIndex < classTypes.length - 1) {
+            this.selectTankByIndex(this.currentTankIndex + 1);
+        }
+    }
+
+    /**
+     * Select tank by index in slider
+     */
+    private selectTankByIndex(index: number) {
+        const classTypes = Object.values(TankClassType);
+        if (index < 0 || index >= classTypes.length) return;
+        if (index === this.currentTankIndex) return;
+        
+        // Hide current tank
+        this.classButtons[this.currentTankIndex].setVisible(false);
+        
+        // Show new tank
+        this.classButtons[index].setVisible(true);
+        
+        this.currentTankIndex = index;
+        this.updateTankSliderDisplay();
+    }
+
+    /**
+     * Update tank slider display
+     */
+    private updateTankSliderDisplay() {
+        const classTypes = Object.values(TankClassType);
+        
+        // Update indicators
+        this.tankIndicators.forEach((indicator, index) => {
+            const dot = indicator.getAt(0) as GameObjects.Arc;
+            dot.setFillStyle(index === this.currentTankIndex ? 0xffffff : 0x666666, 0.8);
+        });
+        
+        // Update navigation buttons
+        this.prevTankButton.setAlpha(this.currentTankIndex > 0 ? 1 : 0.3);
+        this.nextTankButton.setAlpha(this.currentTankIndex < classTypes.length - 1 ? 1 : 0.3);
     }
 
     /**
@@ -634,14 +831,29 @@ export class LobbyScene extends Scene {
      */
     private selectTankClass(classType: TankClassType) {
         this.selectedTankClass = classType;
+        
+        // Find the index of the selected class type and update slider
+        const classTypes = Object.values(TankClassType);
+        const index = classTypes.indexOf(classType);
+        if (index !== -1 && index !== this.currentTankIndex) {
+            this.selectTankByIndex(index);
+        }
 
-        // Update visual selection
-        this.classButtons.forEach(button => {
-            // TODO: Update visual selection
+        // Update visual selection (highlight current tank)
+        this.classButtons.forEach((button, buttonIndex) => {
+            const bg = button.getAt(0) as GameObjects.Rectangle;
+            if (buttonIndex === this.currentTankIndex) {
+                bg.setStrokeStyle(3, 0xffff00); // Yellow border for selected
+            } else {
+                bg.setStrokeStyle(3, 0xaaaaaa); // Default border
+            }
         });
 
         // Inform server
         this.socketService.selectTankClass(classType);
+        
+        // Force update player list to ensure it remains visible
+        this.updatePlayerList();
     }
 
     /**
@@ -738,6 +950,64 @@ export class LobbyScene extends Scene {
      */
     private showErrorMessage(message: string) {
         this.showStatusMessage(message, '#ff0000');
+    }
+
+    /**
+     * Copy lobby code to clipboard
+     */
+    private copyLobbyCode() {
+        if (!this.lobby) return;
+        
+        const lobbyCode = this.lobby.lobbyCode || this.lobby.id;
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            // Modern clipboard API
+            navigator.clipboard.writeText(lobbyCode)
+                .then(() => {
+                    this.showStatusMessage('Lobby code copied to clipboard!', '#00ff00');
+                })
+                .catch(err => {
+                    console.error('Failed to copy lobby code:', err);
+                    this.fallbackCopyLobbyCode(lobbyCode);
+                });
+        } else {
+            // Fallback for older browsers
+            this.fallbackCopyLobbyCode(lobbyCode);
+        }
+    }
+
+    /**
+     * Fallback method for copying lobby code (for older browsers)
+     */
+    private fallbackCopyLobbyCode(lobbyCode: string) {
+        try {
+            // Create a temporary textarea element
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = lobbyCode;
+            tempTextArea.style.position = 'fixed';
+            tempTextArea.style.left = '-999999px';
+            tempTextArea.style.top = '-999999px';
+            document.body.appendChild(tempTextArea);
+            
+            // Select and copy the text
+            tempTextArea.focus();
+            tempTextArea.select();
+            const successful = document.execCommand('copy');
+            
+            // Clean up
+            document.body.removeChild(tempTextArea);
+            
+            if (successful) {
+                this.showStatusMessage('Lobby code copied to clipboard!', '#00ff00');
+            } else {
+                // If all else fails, show the code in a prompt for manual copying
+                prompt('Copy this lobby code:', lobbyCode);
+            }
+        } catch (err) {
+            console.error('Fallback copy failed:', err);
+            // Last resort - show in prompt
+            prompt('Copy this lobby code:', lobbyCode);
+        }
     }
 
     /**
