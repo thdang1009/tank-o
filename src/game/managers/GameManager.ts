@@ -237,8 +237,12 @@ export class GameManager {
         // Determine spawn position (at the edge of the map)
         const spawnPos = this.getRandomSpawnPosition();
 
-        // Create the enemy
-        const enemy = new Enemy(this.scene, spawnPos.x, spawnPos.y, enemyType, this.player);
+        // Create the enemy with death callback
+        const enemy = new Enemy(this.scene, spawnPos.x, spawnPos.y, enemyType, this.player, () => {
+            this.enemiesKilled++;
+            this.checkWaveComplete();
+            console.log('Enemy died, checking wave completion');
+        });
         this.enemies.push(enemy);
 
         // Set up collisions
@@ -348,12 +352,8 @@ export class GameManager {
         // Destroy the bullet
         bullet.destroy();
 
-        // Check if enemy is dead
-        if (!enemy.isAlive) {
-            this.enemiesKilled++;
-            this.checkWaveComplete();
-        }
-
+        // Note: Enemy death handling is now done automatically in Enemy.die() via callback
+        
         // Update UI
         this.updateUI();
     }

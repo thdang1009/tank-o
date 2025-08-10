@@ -27,14 +27,16 @@ export class Enemy {
     targetPlayer: Player;
     fireRange: number; // Distance at which the enemy will start firing
     changeDirectionTimer: Phaser.Time.TimerEvent;
+    onDeathCallback?: () => void; // Callback to notify when enemy dies
     
     // Stats display
     statsText: Phaser.GameObjects.Text;
     
-    constructor(scene: Phaser.Scene, x: number, y: number, type: EnemyType, targetPlayer: Player) {
+    constructor(scene: Phaser.Scene, x: number, y: number, type: EnemyType, targetPlayer: Player, onDeathCallback?: () => void) {
         this.scene = scene;
         this.type = type;
         this.targetPlayer = targetPlayer;
+        this.onDeathCallback = onDeathCallback;
         
         // Set properties based on difficulty type
         switch(type) {
@@ -260,6 +262,11 @@ export class Enemy {
     
     die() {
         this.isAlive = false;
+        
+        // Notify GameManager that enemy has died
+        if (this.onDeathCallback) {
+            this.onDeathCallback();
+        }
         
         // Clean up timer
         if (this.changeDirectionTimer) {

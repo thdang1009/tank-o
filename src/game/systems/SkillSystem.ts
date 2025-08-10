@@ -1287,10 +1287,13 @@ export class SkillSystem {
     // Ice Tank Skill 1: Frost Nova - AOE ice damage with slow effect
     private iceTankFrostNova(player: Player): ActiveSkill {
         const effects: SkillEffect = {
-            duration: 3000,
+            duration: 5000, // Extended for slow effect
             damage: 120,
             range: 100
         };
+        
+        // Store affected enemies for slowing effect
+        const affectedEnemies: any[] = [];
         
         // Create frost nova visual effect
         const frostNova = this.scene.add.circle(
@@ -1328,6 +1331,64 @@ export class SkillSystem {
         
         iceParticles.setPosition(player.body.x, player.body.y);
         
+        // Damage local AI enemies and apply slow effect
+        const gameScene = this.scene as any;
+        if (gameScene.gameManager && gameScene.gameManager.enemies) {
+            const enemyList = gameScene.gameManager.enemies.children ? 
+                gameScene.gameManager.enemies.children.entries : 
+                gameScene.gameManager.enemies;
+                
+            enemyList.forEach((enemy: any) => {
+                if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
+                    const distance = Phaser.Math.Distance.Between(
+                        player.body.x, player.body.y,
+                        enemy.body.x, enemy.body.y
+                    );
+                    if (distance <= effects.range!) {
+                        // Apply damage to enemy
+                        enemy.takeDamage(effects.damage!);
+                        
+                        // Only apply slow effect if enemy is still alive after damage
+                        if (enemy.isAlive && enemy.stats) {
+                            // Apply slow effect (freeze enemies to 10% speed)
+                            if (!enemy.originalSpeed) {
+                                enemy.originalSpeed = enemy.stats.speed;
+                            }
+                            enemy.stats.speed = enemy.originalSpeed * 0.1; // Slow to 10% speed
+                            affectedEnemies.push(enemy);
+                            
+                            // Create freeze effect on enemy
+                            const freezeEffect = this.scene.add.circle(
+                                enemy.body.x, enemy.body.y, 25, 0x88ddff, 0.6
+                            );
+                            freezeEffect.setStrokeStyle(3, 0x0099dd);
+                            
+                            this.scene.tweens.add({
+                                targets: freezeEffect,
+                                alpha: 0.3,
+                                duration: effects.duration,
+                                onUpdate: () => {
+                                    if (enemy && enemy.body && enemy.body.active) {
+                                        freezeEffect.setPosition(enemy.body.x, enemy.body.y);
+                                    } else {
+                                        // Enemy died, cleanup freeze effect
+                                        freezeEffect.destroy();
+                                    }
+                                },
+                                onComplete: () => {
+                                    if (freezeEffect.active) {
+                                        freezeEffect.destroy();
+                                    }
+                                }
+                            });
+                        }
+                        
+                        console.log(`Frost Nova hit enemy for ${effects.damage!} damage and froze!`);
+                    }
+                }
+            });
+        }
+        
         // In multiplayer, this would damage and slow nearby enemies
         if (gameStateManager.isGameActive()) {
             const nearbyPlayers = gameStateManager.getRemotePlayers().filter(p => {
@@ -1364,7 +1425,18 @@ export class SkillSystem {
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [frostNova, iceParticles]
+            visualEffects: [frostNova, iceParticles],
+            player: player,
+            onEnd: () => {
+                // Restore original speed to slowed enemies (only if they're still alive)
+                affectedEnemies.forEach(enemy => {
+                    if (enemy && enemy.isAlive && enemy.originalSpeed && enemy.stats) {
+                        enemy.stats.speed = enemy.originalSpeed;
+                        delete enemy.originalSpeed;
+                    }
+                });
+                console.log(`Frost Nova slow effect ended, restored speed to living enemies`);
+            }
         };
     }
     
@@ -1571,14 +1643,163 @@ export class SkillSystem {
     }
     
     private iceTankIceWall(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
-        const effects: SkillEffect = { duration: 8000 };
+        const effects: SkillEffect = { duration: 8000, range: 120 };
         
+        // Calculate wall position in front of the tank
+        const wallDistance = 100;
+        const wallX = player.body.x + Math.cos(player.barrel.rotation) * wallDistance;
+        const wallY = player.body.y + Math.sin(player.barrel.rotation) * wallDistance;
+        
+        // Create visual wall
         const wall = this.scene.add.rectangle(
-            player.body.x + Math.cos(player.barrel.rotation) * 100,
-            player.body.y + Math.sin(player.barrel.rotation) * 100,
-            80, 20, 0x88ddff, 0.8
+            wallX, wallY,
+            effects.range!, 35, 0x88ddff, 0.8
         );
         wall.setRotation(player.barrel.rotation + Math.PI / 2);
+        wall.setDepth(10);
+        wall.setStrokeStyle(4, 0x0099dd);
+        
+        // Create a single large collision body for the wall
+        const wallCollisionBody = this.scene.add.rectangle(
+            wallX, wallY,
+            effects.range!, 35, 0x88ddff, 0
+        );
+        wallCollisionBody.setRotation(player.barrel.rotation + Math.PI / 2);
+        
+        // Enable physics for the wall
+        this.scene.physics.world.enable(wallCollisionBody);
+        const wallBody = wallCollisionBody.body as Phaser.Physics.Arcade.Body;
+        wallBody.setImmovable(true);
+        
+        // Create ice particles around the wall
+        const wallParticles = this.scene.add.particles(wallX, wallY, AssetsEnum.BULLET_BLUE_1, {
+            scale: { start: 0.2, end: 0 },
+            alpha: { start: 0.6, end: 0 },
+            tint: 0x88ddff,
+            lifespan: 1500,
+            frequency: 200,
+            quantity: 2,
+            speed: { min: 10, max: 30 },
+            angle: { min: 0, max: 360 }
+        });
+        
+        // Set up collision detection using the existing bullet management system
+        const gameScene = this.scene as any;
+        const bulletCollisionInterval = this.scene.time.addEvent({
+            delay: 50, // Check every 50ms
+            repeat: -1,
+            callback: () => {
+                // Check collisions with all player bullets
+                if (gameScene.gameManager && gameScene.gameManager.player) {
+                    const playerBullets = gameScene.gameManager.player.bullets || [];
+                    
+                    playerBullets.forEach((bullet: any) => {
+                        if (bullet && bullet.sprite && bullet.sprite.active && wallCollisionBody.active) {
+                            // Check if bullet overlaps with wall
+                            const bulletBounds = bullet.sprite.getBounds();
+                            const wallBounds = wallCollisionBody.getBounds();
+                            
+                            if (Phaser.Geom.Rectangle.Overlaps(bulletBounds, wallBounds)) {
+                                // Create ice impact effect
+                                const impactEffect = this.scene.add.circle(
+                                    bullet.sprite.x, bullet.sprite.y, 15, 0x88ddff, 0.8
+                                );
+                                this.scene.tweens.add({
+                                    targets: impactEffect,
+                                    scale: 2,
+                                    alpha: 0,
+                                    duration: 300,
+                                    onComplete: () => impactEffect.destroy()
+                                });
+                                
+                                // Remove bullet from player's bullet array
+                                const bulletIndex = gameScene.gameManager.player.bullets.indexOf(bullet);
+                                if (bulletIndex > -1) {
+                                    gameScene.gameManager.player.bullets.splice(bulletIndex, 1);
+                                }
+                                
+                                bullet.destroy();
+                                console.log('Ice wall blocked a player bullet!');
+                            }
+                        }
+                    });
+                }
+                
+                // Check collisions with all enemy bullets
+                if (gameScene.gameManager && gameScene.gameManager.enemies) {
+                    gameScene.gameManager.enemies.forEach((enemy: any) => {
+                        if (enemy && enemy.bullets) {
+                            enemy.bullets.forEach((bullet: any, bulletIndex: number) => {
+                                if (bullet && bullet.sprite && bullet.sprite.active && wallCollisionBody.active) {
+                                    // Check if bullet overlaps with wall
+                                    const bulletBounds = bullet.sprite.getBounds();
+                                    const wallBounds = wallCollisionBody.getBounds();
+                                    
+                                    if (Phaser.Geom.Rectangle.Overlaps(bulletBounds, wallBounds)) {
+                                        // Create ice impact effect
+                                        const impactEffect = this.scene.add.circle(
+                                            bullet.sprite.x, bullet.sprite.y, 15, 0x88ddff, 0.8
+                                        );
+                                        this.scene.tweens.add({
+                                            targets: impactEffect,
+                                            scale: 2,
+                                            alpha: 0,
+                                            duration: 300,
+                                            onComplete: () => impactEffect.destroy()
+                                        });
+                                        
+                                        // Remove bullet from enemy's bullet array
+                                        enemy.bullets.splice(bulletIndex, 1);
+                                        
+                                        bullet.destroy();
+                                        console.log('Ice wall blocked an enemy bullet!');
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+        });
+        
+        // Set up enemy collision using overlap detection
+        const enemyCollision = this.scene.physics.add.overlap(
+            wallCollisionBody,
+            gameScene.gameManager ? gameScene.gameManager.enemies.map((e: any) => e.body) : [],
+            (wall: any, enemyBody: any) => {
+                const enemy = enemyBody.getData('ref'); // Get enemy reference from physics body
+                if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
+                    // Push enemy back from wall
+                    const pushAngle = Phaser.Math.Angle.Between(
+                        wallX, wallY,
+                        enemy.body.x, enemy.body.y
+                    );
+                    const pushForce = 80;
+                    const pushX = Math.cos(pushAngle) * pushForce;
+                    const pushY = Math.sin(pushAngle) * pushForce;
+                    
+                    enemy.body.x += pushX;
+                    enemy.body.y += pushY;
+                    
+                    // Apply slow effect
+                    if (!enemy.wallSlowed) {
+                        enemy.wallSlowed = true;
+                        enemy.wallOriginalSpeed = enemy.stats.speed;
+                        enemy.stats.speed = enemy.wallOriginalSpeed * 0.2; // 20% speed
+                        console.log('Enemy blocked and slowed by ice wall!');
+                        
+                        // Remove slow after 3 seconds
+                        this.scene.time.delayedCall(3000, () => {
+                            if (enemy && enemy.wallSlowed && enemy.stats && enemy.wallOriginalSpeed) {
+                                enemy.stats.speed = enemy.wallOriginalSpeed;
+                                delete enemy.wallSlowed;
+                                delete enemy.wallOriginalSpeed;
+                            }
+                        });
+                    }
+                }
+            }
+        );
         
         this.scene.sound.play(AssetsAudioEnum.ICE_FREEZE, { volume: 0.5 });
         
@@ -1587,18 +1808,50 @@ export class SkillSystem {
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [wall],
+            visualEffects: [wall, wallParticles, wallCollisionBody],
             onEnd: () => {
+                // Clean up bullet collision interval
+                if (bulletCollisionInterval && !bulletCollisionInterval.hasDispatched) {
+                    bulletCollisionInterval.destroy();
+                }
+                
+                // Clean up enemy collision
+                if (enemyCollision && enemyCollision.destroy) {
+                    enemyCollision.destroy();
+                }
+                
+                // Restore speed to any slowed enemies
+                const gameScene = this.scene as any;
+                if (gameScene.gameManager && gameScene.gameManager.enemies) {
+                    gameScene.gameManager.enemies.forEach((enemy: any) => {
+                        if (enemy && enemy.wallSlowed && enemy.wallOriginalSpeed && enemy.stats) {
+                            enemy.stats.speed = enemy.wallOriginalSpeed;
+                            delete enemy.wallSlowed;
+                            delete enemy.wallOriginalSpeed;
+                        }
+                    });
+                }
+                
+                // Destroy visual elements
+                wallParticles.destroy();
                 wall.destroy();
+                wallCollisionBody.destroy();
+                console.log('Ice wall destroyed');
             }
         };
     }
     
     private iceTankAbsoluteZero(player: Player): ActiveSkill {
-        const effects: SkillEffect = { duration: 6000, damage: 300, range: 300 };
+        const effects: SkillEffect = { duration: 8000, damage: 300, range: 300 };
+        
+        // Store affected enemies for stunning effect
+        const affectedEnemies: any[] = [];
         
         const freeze = this.scene.add.circle(player.body.x, player.body.y, 20, 0x88ddff, 0.8);
+        freeze.setStrokeStyle(8, 0x0099dd);
+        freeze.setDepth(100);
         
+        // Create expanding freeze wave
         this.scene.tweens.add({
             targets: freeze,
             scale: effects.range! / 20,
@@ -1607,15 +1860,139 @@ export class SkillSystem {
             onComplete: () => freeze.destroy()
         });
         
+        // Damage and stun all enemies in range
+        const gameScene = this.scene as any;
+        if (gameScene.gameManager && gameScene.gameManager.enemies) {
+            const enemyList = gameScene.gameManager.enemies.children ? 
+                gameScene.gameManager.enemies.children.entries : 
+                gameScene.gameManager.enemies;
+                
+            enemyList.forEach((enemy: any) => {
+                if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
+                    const distance = Phaser.Math.Distance.Between(
+                        player.body.x, player.body.y,
+                        enemy.body.x, enemy.body.y
+                    );
+                    if (distance <= effects.range!) {
+                        // Apply massive damage
+                        enemy.takeDamage(effects.damage!);
+                        
+                        // Only apply stun effect if enemy is still alive after damage
+                        if (enemy.isAlive && enemy.stats) {
+                            // Freeze enemy completely (0 speed and disable firing)
+                            if (!enemy.originalSpeed) {
+                                enemy.originalSpeed = enemy.stats.speed;
+                                enemy.originalFireRate = enemy.stats.fireRate;
+                            }
+                            enemy.stats.speed = 0; // Complete freeze
+                            enemy.stats.fireRate = 999999; // Prevent firing
+                            enemy.isStunned = true;
+                            affectedEnemies.push(enemy);
+                            
+                            // Create freeze effect on enemy
+                            const enemyFreezeEffect = this.scene.add.circle(
+                                enemy.body.x, enemy.body.y, 35, 0x88ddff, 0.7
+                            );
+                            enemyFreezeEffect.setStrokeStyle(4, 0x0099dd);
+                            enemyFreezeEffect.setDepth(enemy.body.depth + 1);
+                            
+                            // Pulsing freeze effect
+                            this.scene.tweens.add({
+                                targets: enemyFreezeEffect,
+                                alpha: 0.9,
+                                scaleX: 1.2,
+                                scaleY: 1.2,
+                                duration: 1000,
+                                yoyo: true,
+                                repeat: Math.floor(effects.duration / 2000),
+                                onUpdate: () => {
+                                    if (enemy && enemy.body && enemy.body.active) {
+                                        enemyFreezeEffect.setPosition(enemy.body.x, enemy.body.y);
+                                    } else {
+                                        // Enemy died, cleanup freeze effect
+                                        enemyFreezeEffect.destroy();
+                                    }
+                                },
+                                onComplete: () => {
+                                    if (enemyFreezeEffect.active) {
+                                        enemyFreezeEffect.destroy();
+                                    }
+                                }
+                            });
+                        }
+                        
+                        console.log(`Absolute Zero hit enemy for ${effects.damage!} damage and stunned!`);
+                    }
+                }
+            });
+        }
+        
+        // In multiplayer, damage all players on the battlefield
+        if (gameStateManager.isGameActive()) {
+            const allPlayers = gameStateManager.getRemotePlayers().filter(p => p.isAlive);
+            
+            allPlayers.forEach(remotePlayer => {
+                const distance = Phaser.Math.Distance.Between(
+                    player.body.x, player.body.y,
+                    remotePlayer.position.x, remotePlayer.position.y
+                );
+                if (distance <= effects.range!) {
+                    // Report massive ice damage hit to server
+                    gameStateManager.reportHit(
+                        remotePlayer.id,
+                        effects.damage!,
+                        'absolute_zero_' + Date.now(),
+                        { x: player.body.x, y: player.body.y }
+                    );
+                }
+            });
+        }
+        
+        // Create ice shards falling from sky effect
+        const iceShards = this.scene.add.particles(0, 0, AssetsEnum.BULLET_BLUE_3, {
+            scale: { start: 0.5, end: 0.1 },
+            alpha: { start: 0.9, end: 0 },
+            tint: 0x88ddff,
+            lifespan: 4000,
+            frequency: 30,
+            quantity: 5,
+            speed: { min: 100, max: 200 },
+            angle: { min: 80, max: 100 },
+            gravityY: 50,
+            x: { min: player.body.x - effects.range!, max: player.body.x + effects.range! },
+            y: player.body.y - 200
+        });
+        
+        // Dramatic screen effects
         this.scene.cameras.main.flash(2000, 200, 230, 255, true);
+        this.scene.cameras.main.shake(1000, 0.01);
         this.scene.sound.play(AssetsAudioEnum.ICE_FREEZE, { volume: 0.8 });
+        
+        // Clean up ice shards after duration
+        this.scene.time.delayedCall(effects.duration, () => {
+            iceShards.destroy();
+        });
         
         return {
             type: TankClassType.ICE_TANK,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [freeze]
+            visualEffects: [freeze, iceShards],
+            player: player,
+            onEnd: () => {
+                // Restore original speed and firing to stunned enemies (only if they're still alive)
+                affectedEnemies.forEach(enemy => {
+                    if (enemy && enemy.isAlive && enemy.originalSpeed && enemy.stats) {
+                        enemy.stats.speed = enemy.originalSpeed;
+                        enemy.stats.fireRate = enemy.originalFireRate;
+                        enemy.isStunned = false;
+                        delete enemy.originalSpeed;
+                        delete enemy.originalFireRate;
+                    }
+                });
+                console.log(`Absolute Zero stun effect ended, restored living enemies`);
+            }
         };
     }
     
