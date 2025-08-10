@@ -195,6 +195,7 @@ export enum AssetsEnum {
     FROST_NOVA_EXPLOSION = 'frost_nova_explosion',
     AIM_TARGET = 'aim',
     FIREBALL_PROJECTILE = 'fireball_projectile',
+    METEOR = 'meteor',
     RADAR_SWEEP = 'radar',
 }
 

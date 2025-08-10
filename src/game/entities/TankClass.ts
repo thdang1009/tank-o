@@ -183,12 +183,12 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
     [TankClassType.MAGE]: {
         type: TankClassType.MAGE,
         name: 'Mage',
-        description: 'Master of elemental magic with powerful spell abilities.',
+        description: 'Master of elemental magic with powerful spell abilities. Normal atk is so weak',
         stats: {
             hp: 600,
             maxHp: 600,
             def: 0,
-            atk: 30,
+            atk: 1,
             spellPower: 200,
             speed: 140,
             fireRate: 700,
@@ -227,7 +227,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
             rotationSpeed: 0.005
         },
         skill1Name: 'Cloak',
-        skill1Description: 'Briefly enters stealth, becoming invisible to enemies and gaining speed. Moving or attacking breaks stealth.',
+        skill1Description: 'Briefly enters stealth, becoming invisible to enemies. Moving or attacking breaks stealth.',
         skill1Sound: AssetsAudioEnum.DISAPPEAR,
         skill2Name: 'Smoke Bomb',
         skill2Description: 'Throws a smoke bomb that creates a cloud, obscuring vision for enemies and breaking projectile targeting.',
@@ -240,7 +240,7 @@ export const TankClasses: Record<TankClassType, TankClassDefinition> = {
         bulletAsset: AssetsEnum.BULLET_DARK_1,
         // Backward compatibility
         skillName: 'Cloak',
-        skillDescription: 'Briefly enters stealth, becoming invisible to enemies and gaining speed. Moving or attacking breaks stealth.',
+        skillDescription: 'Briefly enters stealth, becoming invisible to enemies. Moving or attacking breaks stealth.',
         skillSound: AssetsAudioEnum.DISAPPEAR
     },
     

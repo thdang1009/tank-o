@@ -655,21 +655,25 @@ export class Player {
             return false;
         }
         
-        // Update last used time
-        switch (skillSlot) {
-            case 'skill1':
-                this.lastSkill1Used = now;
-                break;
-            case 'skill2':
-                this.lastSkill2Used = now;
-                break;
-            case 'ultimate':
-                this.lastUltimateUsed = now;
-                break;
+        // Pass skill slot to skill system first
+        const skillActivated = this.skillSystem.useSkill(this, this.tankClass, targetPosition, skillSlot);
+        
+        // Only update last used time if skill was successfully activated
+        if (skillActivated) {
+            switch (skillSlot) {
+                case 'skill1':
+                    this.lastSkill1Used = now;
+                    break;
+                case 'skill2':
+                    this.lastSkill2Used = now;
+                    break;
+                case 'ultimate':
+                    this.lastUltimateUsed = now;
+                    break;
+            }
         }
         
-        // Pass skill slot to skill system
-        return this.skillSystem.useSkill(this, this.tankClass, targetPosition, skillSlot);
+        return skillActivated;
     }
 
     deactivateSkill() {

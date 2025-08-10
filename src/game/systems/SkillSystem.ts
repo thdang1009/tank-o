@@ -40,6 +40,29 @@ export class SkillSystem {
         
         // Check if player already has an active skill
         if (this.activeSkills.has(playerId)) {
+            console.log(`Player ${playerId} already has active skill`);
+            return false;
+        }
+        
+        // Double-check cooldowns as backup (in case Player.useSkill cooldown check fails)
+        const now = Date.now();
+        const cooldown = this.getSkillCooldown(skillType, skillSlot);
+        let lastUsed: number;
+        
+        switch (skillSlot) {
+            case 'skill1':
+                lastUsed = player.lastSkill1Used;
+                break;
+            case 'skill2':
+                lastUsed = player.lastSkill2Used;
+                break;
+            case 'ultimate':
+                lastUsed = player.lastUltimateUsed;
+                break;
+        }
+        
+        if (now < lastUsed + cooldown) {
+            console.log(`SkillSystem: ${skillSlot} still on cooldown for ${Math.ceil((lastUsed + cooldown - now) / 1000)}s`);
             return false;
         }
         
@@ -49,19 +72,7 @@ export class SkillSystem {
             this.activeSkills.set(playerId, skill);
             console.log(`Skill activated: ${skillType} for player ${playerId}, duration: ${skill.duration}ms`);
             
-            // Update last skill used time based on skill slot
-            const now = Date.now();
-            switch (skillSlot) {
-                case 'skill1':
-                    player.lastSkill1Used = now;
-                    break;
-                case 'skill2':
-                    player.lastSkill2Used = now;
-                    break;
-                case 'ultimate':
-                    player.lastUltimateUsed = now;
-                    break;
-            }
+            // Note: lastSkillXUsed time is already updated by Player.useSkill() before calling this method
             
             // Notify server in multiplayer
             if (gameStateManager.isGameActive()) {
@@ -900,48 +911,111 @@ export class SkillSystem {
     // Mage Skill 1: Fireball - Launch devastating area damage projectile
     private mageFireball(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
         const effects: SkillEffect = {
-            duration: 500,
+            duration: 3000, // Match the projectile flight time to prevent rapid firing
             damage: 200,
             range: 80
         };
         
-        const target = targetPosition || this.getBarrelTip(player);
-        const angle = Phaser.Math.Angle.Between(player.body.x, player.body.y, target.x, target.y);
+        // Calculate much longer flight distance (10x further)
+        const flightDistance = 800; // 10x longer range
+        const angle = player.barrel.rotation;
+        const startX = player.barrel.x;
+        const startY = player.barrel.y;
+        const targetX = startX + Math.cos(angle) * flightDistance;
+        const targetY = startY + Math.sin(angle) * flightDistance;
         
         // Create fireball projectile
         const fireball = this.scene.add.sprite(
-            player.barrel.x,
-            player.barrel.y,
-            AssetsEnum.BULLET_RED_3
+            startX,
+            startY,
+            AssetsEnum.FIREBALL_PROJECTILE
         );
-        fireball.setScale(2);
-        fireball.setTint(0xff6600);
+        fireball.setScale(1.5);
         fireball.setDepth(10);
-        
-        // Animate fireball to target
-        this.scene.tweens.add({
-            targets: fireball,
-            x: target.x,
-            y: target.y,
-            duration: 800,
-            onComplete: () => {
-                // Create explosion at target
-                this.createExplosion(target.x, target.y, effects.range!, effects.damage!);
-                fireball.destroy();
-            }
-        });
+        fireball.setRotation(angle);
         
         // Add fire trail
         const fireTrail = this.scene.add.particles(0, 0, AssetsEnum.BULLET_RED_1, {
             scale: { start: 0.5, end: 0 },
             alpha: { start: 1, end: 0 },
             tint: 0xff6600,
-            lifespan: 300,
+            lifespan: 800, // Longer lifespan for longer trail
             frequency: 50,
             quantity: 2
         });
         
         fireTrail.startFollow(fireball);
+        
+        // Track if fireball has exploded to prevent multiple explosions
+        let hasExploded = false;
+        
+        // Create collision detection during flight
+        const collisionCheck = this.scene.time.addEvent({
+            delay: 50, // Check every 50ms
+            repeat: -1,
+            callback: () => {
+                if (hasExploded || !fireball.active) {
+                    collisionCheck.destroy();
+                    return;
+                }
+                
+                // Check if fireball is out of bounds
+                const bounds = this.scene.physics.world.bounds;
+                if (fireball.x < bounds.x || fireball.x > bounds.x + bounds.width ||
+                    fireball.y < bounds.y || fireball.y > bounds.y + bounds.height) {
+                    
+                    hasExploded = true;
+                    this.createExplosion(fireball.x, fireball.y, effects.range!, effects.damage!);
+                    fireball.destroy();
+                    fireTrail.destroy();
+                    collisionCheck.destroy();
+                    return;
+                }
+                
+                // Check collision with enemies
+                const gameScene = this.scene as any;
+                if (gameScene.gameManager && gameScene.gameManager.enemies) {
+                    const enemyList = gameScene.gameManager.enemies.children ? 
+                        gameScene.gameManager.enemies.children.entries : 
+                        gameScene.gameManager.enemies;
+                        
+                    enemyList.forEach((enemy: any) => {
+                        if (enemy && enemy.isAlive && enemy.body && enemy.body.active && !hasExploded) {
+                            const distance = Phaser.Math.Distance.Between(
+                                fireball.x, fireball.y,
+                                enemy.body.x, enemy.body.y
+                            );
+                            if (distance <= 40) { // Hit detection radius
+                                hasExploded = true;
+                                this.createExplosion(fireball.x, fireball.y, effects.range!, effects.damage!);
+                                fireball.destroy();
+                                fireTrail.destroy();
+                                collisionCheck.destroy();
+                                console.log(`Fireball hit ${enemy.constructor.name} directly!`);
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        
+        // Animate fireball to target (longer duration for longer distance)
+        this.scene.tweens.add({
+            targets: fireball,
+            x: targetX,
+            y: targetY,
+            duration: 2400, // 3x longer duration for the extended range
+            ease: 'Linear',
+            onComplete: () => {
+                // Only explode if hasn't already exploded from collision
+                if (!hasExploded) {
+                    this.createExplosion(targetX, targetY, effects.range!, effects.damage!);
+                    fireball.destroy();
+                    fireTrail.destroy();
+                }
+                collisionCheck.destroy();
+            }
+        });
         
         this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.7 });
         
@@ -1093,19 +1167,16 @@ export class SkillSystem {
         const fallbackTimer = this.scene.time.delayedCall(effects.duration + 500, () => {
             // Force reset if still in cloak mode
             if (player.isInvisible) {
-                const speedToRestore = (player as any).cloakOriginalSpeed || originalStats.speed;
                 const invisibleToRestore = (player as any).cloakOriginalInvisible || false;
                 
-                player.stats.speed = speedToRestore;
                 player.isInvisible = invisibleToRestore;
                 player.body.setAlpha(1);
                 player.barrel.setAlpha(1);
                 
                 // Clean up stored values
-                delete (player as any).cloakOriginalSpeed;
                 delete (player as any).cloakOriginalInvisible;
                 
-                console.log(`FALLBACK: Cloak force reset - Speed: ${player.stats.speed}, Invisible: ${player.isInvisible}`);
+                console.log(`FALLBACK: Cloak force reset - Invisible: ${player.isInvisible}`);
             }
         });
         
@@ -1122,11 +1193,9 @@ export class SkillSystem {
             visualEffects: [stealthEffect],
             player: player, // Store player reference
             onEnd: (player: Player) => {
-                // Use stored values with fallbacks
-                const speedToRestore = (player as any).cloakOriginalSpeed || originalStats.speed;
+                // Restore original invisibility state
                 const invisibleToRestore = (player as any).cloakOriginalInvisible || false;
                 
-                player.stats.speed = speedToRestore;
                 player.isInvisible = invisibleToRestore;
                 player.body.setAlpha(1);
                 player.barrel.setAlpha(1);
@@ -1140,10 +1209,9 @@ export class SkillSystem {
                 }
                 
                 // Clean up stored values
-                delete (player as any).cloakOriginalSpeed;
                 delete (player as any).cloakOriginalInvisible;
                 
-                console.log(`Cloak ended normally - Speed: ${player.stats.speed}, Invisible: ${player.isInvisible}`);
+                console.log(`Cloak ended normally - Invisible: ${player.isInvisible}`);
             }
         };
     }
@@ -1469,17 +1537,146 @@ export class SkillSystem {
         };
     }
     
-    // Add missing skill implementations with basic effects
+    // Mage Skill 2: Lightning Bolt - Instant chain lightning damage
     private mageLightningBolt(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
-        const effects: SkillEffect = { duration: 800, damage: 180 };
+        const effects: SkillEffect = { 
+            duration: 800, 
+            damage: 180,
+            range: 400 // Lightning range
+        };
         
+        // Create main lightning bolt visual
         const lightning = this.scene.add.rectangle(
             player.barrel.x, player.barrel.y,
-            400, 5, 0xffff00, 0.9
+            effects.range!, 8, 0xffff00, 0.9
         );
         lightning.setRotation(player.barrel.rotation);
         lightning.setOrigin(0, 0.5);
         
+        // Calculate lightning path
+        const angle = player.barrel.rotation;
+        const startX = player.barrel.x;
+        const startY = player.barrel.y;
+        const endX = startX + Math.cos(angle) * effects.range!;
+        const endY = startY + Math.sin(angle) * effects.range!;
+        
+        // Find all enemies in lightning path and damage them
+        const gameScene = this.scene as any;
+        const hitEnemies: any[] = [];
+        
+        if (gameScene.gameManager && gameScene.gameManager.enemies) {
+            const enemyList = gameScene.gameManager.enemies.children ? 
+                gameScene.gameManager.enemies.children.entries : 
+                gameScene.gameManager.enemies;
+                
+            enemyList.forEach((enemy: any) => {
+                if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
+                    // Check if enemy is close to the lightning path
+                    const distanceToLine = this.distanceToLine(
+                        startX, startY, endX, endY,
+                        enemy.body.x, enemy.body.y
+                    );
+                    
+                    const distanceFromStart = Phaser.Math.Distance.Between(
+                        startX, startY, enemy.body.x, enemy.body.y
+                    );
+                    
+                    // Hit if within 30 pixels of lightning path and within range
+                    if (distanceToLine <= 30 && distanceFromStart <= effects.range!) {
+                        hitEnemies.push(enemy);
+                        
+                        // Apply damage
+                        enemy.takeDamage(effects.damage!);
+                        
+                        console.log(`Lightning bolt hit ${enemy.constructor.name} for ${effects.damage!} damage`);
+                        
+                        // Create lightning hit effect
+                        const lightningHit = this.scene.add.circle(
+                            enemy.body.x, enemy.body.y, 25, 0xffff00, 0.9
+                        );
+                        
+                        // Create branching lightning to enemy
+                        const branchLightning = this.scene.add.line(
+                            0, 0,
+                            startX, startY,
+                            enemy.body.x, enemy.body.y,
+                            0xaaff00, 0.8
+                        );
+                        branchLightning.setLineWidth(4);
+                        branchLightning.setDepth(50);
+                        
+                        this.scene.tweens.add({
+                            targets: [lightningHit, branchLightning],
+                            alpha: 0,
+                            duration: 300,
+                            onComplete: () => {
+                                lightningHit.destroy();
+                                branchLightning.destroy();
+                            }
+                        });
+                    }
+                }
+            });
+        }
+        
+        // Chain lightning effect - hit nearby enemies of already hit enemies
+        const chainRange = 120;
+        const chainDamage = Math.floor(effects.damage! * 0.6); // 60% damage for chain
+        const alreadyChained = new Set(hitEnemies);
+        
+        hitEnemies.forEach(hitEnemy => {
+            if (gameScene.gameManager && gameScene.gameManager.enemies) {
+                const enemyList = gameScene.gameManager.enemies.children ? 
+                    gameScene.gameManager.enemies.children.entries : 
+                    gameScene.gameManager.enemies;
+                    
+                enemyList.forEach((nearbyEnemy: any) => {
+                    if (nearbyEnemy && nearbyEnemy.isAlive && nearbyEnemy.body && nearbyEnemy.body.active && 
+                        !alreadyChained.has(nearbyEnemy)) {
+                        
+                        const chainDistance = Phaser.Math.Distance.Between(
+                            hitEnemy.body.x, hitEnemy.body.y,
+                            nearbyEnemy.body.x, nearbyEnemy.body.y
+                        );
+                        
+                        if (chainDistance <= chainRange) {
+                            alreadyChained.add(nearbyEnemy);
+                            
+                            // Apply chain damage
+                            nearbyEnemy.takeDamage(chainDamage);
+                            
+                            console.log(`Lightning chain hit ${nearbyEnemy.constructor.name} for ${chainDamage} damage`);
+                            
+                            // Create chain lightning visual
+                            const chainLightning = this.scene.add.line(
+                                0, 0,
+                                hitEnemy.body.x, hitEnemy.body.y,
+                                nearbyEnemy.body.x, nearbyEnemy.body.y,
+                                0x66ff66, 0.7
+                            );
+                            chainLightning.setLineWidth(3);
+                            chainLightning.setDepth(51);
+                            
+                            const chainHit = this.scene.add.circle(
+                                nearbyEnemy.body.x, nearbyEnemy.body.y, 20, 0x66ff66, 0.8
+                            );
+                            
+                            this.scene.tweens.add({
+                                targets: [chainLightning, chainHit],
+                                alpha: 0,
+                                duration: 400,
+                                onComplete: () => {
+                                    chainLightning.destroy();
+                                    chainHit.destroy();
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Main lightning animation
         this.scene.tweens.add({
             targets: lightning,
             alpha: 0,
@@ -1488,6 +1685,8 @@ export class SkillSystem {
             onComplete: () => lightning.destroy()
         });
         
+        // Screen flash for lightning effect
+        this.scene.cameras.main.flash(100, 255, 255, 0, true);
         this.scene.sound.play(AssetsAudioEnum.SPEED_UP, { volume: 0.7 });
         
         return {
@@ -1499,30 +1698,147 @@ export class SkillSystem {
         };
     }
     
+    // Mage Ultimate: Meteor - Battlefield-wide devastating meteor shower
     private mageMeteor(player: Player, targetPosition?: { x: number, y: number }): ActiveSkill {
-        const effects: SkillEffect = { duration: 4000, damage: 400, range: 150 };
-        const target = targetPosition || { x: player.body.x, y: player.body.y - 200 };
+        const effects: SkillEffect = { 
+            duration: 6000, // Longer duration for multiple meteors
+            damage: 300, // Reduced per-meteor damage since it's area-wide
+            range: 800 // Extremely wide range to cover entire battlefield
+        };
         
-        const meteor = this.scene.add.circle(target.x, target.y - 300, 25, 0xff4400, 0.9);
+        // Get battlefield bounds
+        const bounds = this.scene.physics.world.bounds;
+        const centerX = bounds.x + bounds.width / 2;
+        const centerY = bounds.y + bounds.height / 2;
         
-        this.scene.tweens.add({
-            targets: meteor,
-            y: target.y,
-            duration: 2000,
-            onComplete: () => {
-                this.createExplosion(target.x, target.y, effects.range!, effects.damage!);
-                meteor.destroy();
-            }
+        // Create multiple meteors across the battlefield
+        const meteorCount = 8; // Multiple meteors for wide coverage
+        const meteors: Phaser.GameObjects.GameObject[] = [];
+        
+        // Create warning indicators first
+        const warningIndicators: Phaser.GameObjects.GameObject[] = [];
+        
+        for (let i = 0; i < meteorCount; i++) {
+            // Spread meteors across the battlefield
+            const angle = (i / meteorCount) * Math.PI * 2;
+            const distance = Math.random() * (effects.range! * 0.4) + 100; // Random distance from center
+            
+            const meteorTargetX = centerX + Math.cos(angle) * distance + (Math.random() - 0.5) * 200;
+            const meteorTargetY = centerY + Math.sin(angle) * distance + (Math.random() - 0.5) * 200;
+            
+            // Clamp to battlefield bounds
+            const targetX = Phaser.Math.Clamp(meteorTargetX, bounds.x + 50, bounds.x + bounds.width - 50);
+            const targetY = Phaser.Math.Clamp(meteorTargetY, bounds.y + 50, bounds.y + bounds.height - 50);
+            
+            // Create warning indicator
+            const warning = this.scene.add.circle(targetX, targetY, 80, 0xff0000, 0.3);
+            warning.setStrokeStyle(4, 0xff4400);
+            warning.setDepth(5);
+            warningIndicators.push(warning);
+            
+            // Warning animation
+            this.scene.tweens.add({
+                targets: warning,
+                alpha: 0.6,
+                scaleX: 1.2,
+                scaleY: 1.2,
+                duration: 800,
+                yoyo: true,
+                repeat: 2
+            });
+            
+            // Create meteor starting high above target
+            const meteor = this.scene.add.sprite(targetX, targetY - 400, AssetsEnum.METEOR);
+            meteor.setScale(0.8 + Math.random() * 0.4); // Random size variation (0.8 to 1.2 scale)
+            meteor.setDepth(100);
+            meteor.setRotation(Math.random() * Math.PI * 2); // Random rotation for variety
+            meteors.push(meteor);
+            
+            // Add fire trail for each meteor
+            const meteorTrail = this.scene.add.particles(0, 0, AssetsEnum.BULLET_RED_1, {
+                scale: { start: 0.8, end: 0 },
+                alpha: { start: 1, end: 0 },
+                tint: [0xff4400, 0xff6600, 0xffaa00],
+                lifespan: 800,
+                frequency: 30,
+                quantity: 3
+            });
+            meteorTrail.startFollow(meteor);
+            meteors.push(meteorTrail);
+            
+            // Stagger meteor impacts
+            const impactDelay = 2000 + (i * 300); // 300ms between each meteor
+            
+            // Meteor fall animation
+            this.scene.tweens.add({
+                targets: meteor,
+                y: targetY,
+                duration: 1500,
+                delay: impactDelay,
+                ease: 'Power2',
+                onComplete: () => {
+                    // Create massive explosion
+                    this.createExplosion(targetX, targetY, 120, effects.damage!); // Each meteor has good range
+                    
+                    // Create additional screen effects for each impact
+                    this.scene.cameras.main.shake(400, 0.008);
+                    
+                    // Destroy meteor and trail
+                    meteor.destroy();
+                    meteorTrail.destroy();
+                    
+                    console.log(`Meteor ${i + 1} impact at (${Math.round(targetX)}, ${Math.round(targetY)})`);
+                }
+            });
+            
+            // Add rotation animation during fall for more realistic meteor effect
+            this.scene.tweens.add({
+                targets: meteor,
+                rotation: meteor.rotation + (Math.PI * 4), // 2 full rotations during fall
+                duration: 1500,
+                delay: impactDelay,
+                ease: 'Linear'
+            });
+        }
+        
+        // Remove warning indicators after a delay
+        this.scene.time.delayedCall(2500, () => {
+            warningIndicators.forEach(warning => {
+                if (warning.active) {
+                    warning.destroy();
+                }
+            });
         });
         
-        this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.8 });
+        // Dramatic screen effects for ultimate activation
+        this.scene.cameras.main.flash(1000, 100, 0, 0, true);
+        this.scene.cameras.main.shake(2000, 0.005);
+        
+        // Sound effects
+        this.scene.sound.play(AssetsAudioEnum.ARTILLERY_WHISTLE, { volume: 0.9 });
+        this.scene.time.delayedCall(2000, () => {
+            this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 1.0 });
+        });
         
         return {
             type: TankClassType.MAGE,
             startTime: Date.now(),
             duration: effects.duration,
             effects: effects,
-            visualEffects: [meteor]
+            visualEffects: meteors.concat(warningIndicators),
+            onEnd: () => {
+                // Cleanup any remaining meteors and effects
+                meteors.forEach(meteor => {
+                    if (meteor.active) {
+                        meteor.destroy();
+                    }
+                });
+                warningIndicators.forEach(warning => {
+                    if (warning.active) {
+                        warning.destroy();
+                    }
+                });
+            }
         };
     }
     
@@ -2391,7 +2707,7 @@ export class SkillSystem {
             [TankClassType.DEALER]: { skill1: 6000, skill2: 10000, ultimate: 35000 },
             [TankClassType.SUPPORTER]: { skill1: 10000, skill2: 12000, ultimate: 40000 },
             [TankClassType.VERSATILE]: { skill1: 5000, skill2: 8000, ultimate: 30000 },
-            [TankClassType.MAGE]: { skill1: 12000, skill2: 14000, ultimate: 50000 },
+            [TankClassType.MAGE]: { skill1: 5000, skill2: 14000, ultimate: 50000 },
             [TankClassType.SPY]: { skill1: 4000, skill2: 6000, ultimate: 25000 },
             [TankClassType.DEMOLITION]: { skill1: 15000, skill2: 18000, ultimate: 60000 },
             [TankClassType.RADAR_SCOUT]: { skill1: 5000, skill2: 7000, ultimate: 30000 },
@@ -2407,6 +2723,41 @@ export class SkillSystem {
             x: player.barrel.x + Math.cos(player.barrel.rotation) * barrelLength,
             y: player.barrel.y + Math.sin(player.barrel.rotation) * barrelLength
         };
+    }
+    
+    // Helper function to calculate distance from a point to a line segment
+    private distanceToLine(x1: number, y1: number, x2: number, y2: number, px: number, py: number): number {
+        const A = px - x1;
+        const B = py - y1;
+        const C = x2 - x1;
+        const D = y2 - y1;
+        
+        const dot = A * C + B * D;
+        const lenSq = C * C + D * D;
+        
+        if (lenSq === 0) {
+            // Line segment is actually a point
+            return Math.sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
+        }
+        
+        let param = dot / lenSq;
+        
+        let xx, yy;
+        
+        if (param < 0) {
+            xx = x1;
+            yy = y1;
+        } else if (param > 1) {
+            xx = x2;
+            yy = y2;
+        } else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+        
+        const dx = px - xx;
+        const dy = py - yy;
+        return Math.sqrt(dx * dx + dy * dy);
     }
     
     private createExplosion(x: number, y: number, radius: number, damage: number) {
@@ -2430,7 +2781,45 @@ export class SkillSystem {
         // Sound
         this.scene.sound.play(AssetsAudioEnum.EXPLOSION, { volume: 0.6 });
         
-        // In a full implementation, you'd check for players in range and apply damage
+        // Damage local AI enemies
+        const gameScene = this.scene as any;
+        if (gameScene.gameManager && gameScene.gameManager.enemies) {
+            const enemyList = gameScene.gameManager.enemies.children ? 
+                gameScene.gameManager.enemies.children.entries : 
+                gameScene.gameManager.enemies;
+                
+            enemyList.forEach((enemy: any) => {
+                if (enemy && enemy.isAlive && enemy.body && enemy.body.active) {
+                    const distance = Phaser.Math.Distance.Between(
+                        x, y, enemy.body.x, enemy.body.y
+                    );
+                    if (distance <= radius) {
+                        // Calculate damage based on distance (closer = more damage)
+                        const distanceRatio = 1 - (distance / radius);
+                        const actualDamage = Math.floor(damage * Math.max(0.3, distanceRatio)); // Min 30% damage
+                        
+                        // Apply damage to enemy
+                        enemy.takeDamage(actualDamage);
+                        
+                        console.log(`Explosion hit ${enemy.constructor.name} for ${actualDamage} damage at distance ${Math.round(distance)}`);
+                        
+                        // Create hit effect on enemy
+                        const hitEffect = this.scene.add.circle(
+                            enemy.body.x, enemy.body.y, 20, 0xff4400, 0.8
+                        );
+                        this.scene.tweens.add({
+                            targets: hitEffect,
+                            scale: 2,
+                            alpha: 0,
+                            duration: 400,
+                            onComplete: () => hitEffect.destroy()
+                        });
+                    }
+                }
+            });
+        }
+        
+        // Damage remote players in multiplayer
         if (gameStateManager.isGameActive()) {
             const remotePlayers = gameStateManager.getRemotePlayers();
             remotePlayers.forEach(remotePlayer => {
